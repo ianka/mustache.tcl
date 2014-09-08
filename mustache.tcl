@@ -23,17 +23,19 @@ namespace eval ::mustache {
 	set openTag "\{\{"
 	set closeTag "\}\}"
 
-	proc compile {part context {frame {}} {output {}}} {
+	proc compile {part context {frame {}} {input {}} {output {}}} {
 		## Get open index of next tag.
 		set openindex [string first $::mustache::openTag $part]
 
 		## Break tailcall when no new tag is found.
 		if {$openindex==-1} {
+			append input $part
 			append output $part
-			return [list $output {}]
+			return [list $input $output {}]
 		}
 
-		## Copy verbatim text up to next tag to output.
+		## Copy verbatim text up to next tag to input and output.
+		append input [string range $part 0 $openindex-1]
 		append output [string range $part 0 $openindex-1]
 
 		## Get close index of tag.
@@ -52,6 +54,11 @@ namespace eval ::mustache {
 			">" { set command includePartial }
 			"=" { set command setDelimiters }
 			default { incr openlength -1 ; set command substitute ; set escape 1 }
+		}
+
+		## Add verbatim tag to input, if not endSection.
+		if {$command ne {endSection}} {
+			append input [string range $part $openindex [expr $closeindex+$closelength-1]]
 		}
 
 		## Get tag parameter.
@@ -95,25 +102,32 @@ namespace eval ::mustache {
 
 					## Skip silently if the values is false or an empty list.
 					if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
-						foreach {dummy tail} [::mustache::compile $tail $context $newframe] {}
+						foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $newframe] {}
 					} else {
-						## Otherwise loop over list.
-						foreach value $values {
-							## Replace variant context by a single instance of it
-							set newcontext $context
-							dict set newcontext {*}$newframe $value
+						## Check for lambda.
+						if {[llength [lindex $values 0]] == 1} {
+							## Feed raw section into lambda.
+							foreach {sectioninput dummy tail} [::mustache::compile $tail $context $newframe] {}
+							append output [$values $sectioninput $context $frame]
+						} else {
+							## Otherwise loop over list.
+							foreach value $values {
+								## Replace variant context by a single instance of it
+								set newcontext $context
+								dict set newcontext {*}$newframe $value
 
-							## Call recursive, get new tail.
-							foreach {sectionoutput newtail} [::mustache::compile $tail $newcontext $newframe] {}
-							append output $sectionoutput
+								## Call recursive, get new tail.
+								foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $newframe] {}
+								append output $sectionoutput
+							}
+
+							## Update tail to skip the section in this level.
+							set tail $newtail
 						}
-
-						## Update tail to skip the section in this level.
-						set tail $newtail
 					}
 				} else {
 					## Key nonexistant. Skip silently over the section.
-					foreach {dummy tail} [::mustache::compile $tail $context $newframe] {}
+					foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $newframe] {}
 				}
 			}
 			startInvertedSection {
@@ -127,28 +141,28 @@ namespace eval ::mustache {
 					if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 						## Key is false or empty list. Render once. 
 						## Call recursive, get new tail.
-						foreach {sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
+						foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
 						append output $sectionoutput
 					} else {
 						## Key is a valid list. Skip silently over the section.
-						foreach {dummy tail} [::mustache::compile $tail $context $newframe] {}
+						foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $newframe] {}
 					}
 				} else {
 					## Key doesn't exist. Render once. 
 					## Call recursive, get new tail.
-					foreach {sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
+					foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
 					append output $sectionoutput
 				}
 			}
 			endSection {
 				## Break recursion if parameter matches innermost frame.
 				if {$parameter eq [lindex $frame end]} {
-					return [list $output $tail]
+					return [list $input $output $tail]
 				}
 			}
 			includePartial {
 				## Compile a partial from a variable.
-				foreach {sectionoutput dummy} [::mustache::compile [set ::$parameter] $context $frame] {}
+				foreach {sectioninput sectionoutput dummy} [::mustache::compile [set ::$parameter] $context $frame] {}
 				append output $sectionoutput
 			}
 			setDelimiters {
@@ -159,33 +173,34 @@ namespace eval ::mustache {
 		}
 
 		## Tailcall with remainder of part, no iterator, current frame and current output.
-		tailcall ::mustache::compile $tail $context $frame $output
+		tailcall ::mustache::compile $tail $context $frame $input $output
 	}
 
 
 	## Convenience proc: throw away tail.
-	proc mustache {part values} {lindex [::mustache::compile $part $values] 0}
+	proc mustache {part values {frame {}}} {lindex [::mustache::compile $part $values $frame] 1}
 }
 
 set ::keine {{{keine}}}
 set ::nachbarn {<ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>{{>keine}}</li>{{/nachbarn}}</ol>}
 
-puts [mustache::mustache {
+puts [::mustache::mustache {
 
 <h1>Stadt, Land, Fluss</h1>
 <table><colgroup><col span="3"></colgroup>
 	<tr><th>Stadt</th><th>Land</th><th>Fluss</th><th>Nachbarn</th></tr>
 {{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td>{{>nachbarn}}</td></tr>
 {{/zeilen}}</table>
-{{>::nachbarn}}
-{{=<% %>=}}
-<% name %>
-<%={{ }}=%>
-{{name}}
+{{#wrapped}}
+Mein Name ist {{name}}. Ich weiß bescheid.
+{{>nachbarn}}
+{{/wrapped}}
+{{=<% %>=}}<% name %>,<%={{ }}=%>{{name}}
 } {
 keine "nada"
-name "blub"
+name "Hase"
 aber "aber"
+wrapped {::mustache::mustache}
 nachbarn {{name "Hans"} {name "Walter"}}
 zeilen {
 	{stadt "Bremen" land "Deutschland" fluss "Weser" aber "foo" nachbarn {{name "Niedersachsen"}}}
