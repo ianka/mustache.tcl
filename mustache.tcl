@@ -55,7 +55,7 @@ namespace eval ::mustache {
 		}
 
 		## Get tag parameter.
-		set parameter [string range $part $openindex+$openlength $closeindex-1]
+		set parameter [string trim [string range $part $openindex+$openlength $closeindex-1]]
 
 		## Get tail.
 		set tail [string range $part $closeindex+$closelength end]
@@ -171,7 +171,7 @@ puts [mustache::mustache {
 {{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td><ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>keine</li>{{/nachbarn}}</ol></td></tr>
 {{/zeilen}}</table>
 {{=<% %>=}}
-<%name%>
+<% name %>
 <%={{ }}=%>
 {{name}}
 } {
