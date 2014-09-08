@@ -8,7 +8,7 @@
 ## {{#list}} - start substitute section with "list"
 ## {{^list}} - start "inverted" substitute section with "list"
 ## {{/list}} - end substitute section with "list"
-## {{>template}} - include another "template"
+## {{>partial}} - include another "partial"
 ## {{=open close=}} - change "open" and close tags
 
 
@@ -49,7 +49,7 @@ namespace eval ::mustache {
 			"#" { set command startSection }
 			"^" { set command startInvertedSection }
 			"/" { set command endSection }
-			">" { set command includeTemplate }
+			">" { set command includePartial }
 			"=" { set command setDelimiters }
 			default { incr openlength -1 ; set command substitute ; set escape 1 }
 		}
@@ -146,6 +146,11 @@ namespace eval ::mustache {
 					return [list $output $tail]
 				}
 			}
+			includePartial {
+				## Compile a partial from a variable.
+				foreach {sectionoutput dummy} [::mustache::compile [set ::$parameter] $context $frame] {}
+				append output $sectionoutput
+			}
 			setDelimiters {
 				## Set tag delimiters.
 				set ::mustache::openTag [lindex [split $parameter { }] 0]
@@ -162,25 +167,30 @@ namespace eval ::mustache {
 	proc mustache {part values} {lindex [::mustache::compile $part $values] 0}
 }
 
+set ::keine {{{keine}}}
+set ::nachbarn {<ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>{{>keine}}</li>{{/nachbarn}}</ol>}
 
 puts [mustache::mustache {
 
 <h1>Stadt, Land, Fluss</h1>
 <table><colgroup><col span="3"></colgroup>
 	<tr><th>Stadt</th><th>Land</th><th>Fluss</th><th>Nachbarn</th></tr>
-{{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td><ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>keine</li>{{/nachbarn}}</ol></td></tr>
+{{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td>{{>nachbarn}}</td></tr>
 {{/zeilen}}</table>
+{{>::nachbarn}}
 {{=<% %>=}}
 <% name %>
 <%={{ }}=%>
 {{name}}
 } {
+keine "nada"
 name "blub"
 aber "aber"
+nachbarn {{name "Hans"} {name "Walter"}}
 zeilen {
 	{stadt "Bremen" land "Deutschland" fluss "Weser" aber "foo" nachbarn {{name "Niedersachsen"}}}
-	{stadt "Paris" land "Frankreich" fluss "Seine" nachbarn {{name "Spanien"} {name "Andorra"} {name "Italien"} {name "Schweiz"} {name "Deutschland"} {name "Luxemburg"} {name "Belgien"} {name "Niederlande"}}}
 	{stadt "London" land "Großbritannien" fluss "Themse"}
+	{stadt "Paris" land "Frankreich" fluss "Seine" nachbarn {{name "Spanien"} {name "Andorra"} {name "Italien"} {name "Schweiz"} {name "Deutschland"} {name "Luxemburg"} {name "Belgien"} {name "Niederlande"}}}
 }}]
 
 
