@@ -21,24 +21,19 @@ namespace eval ::mustache {
 
 	set openTag "\{\{"
 	set closeTag "\}\}"
-	set output {}
 
-	proc compile {part context {frame {}} {silent 0}} {
+	proc compile {part context {frame {}} {output {}}} {
 		## Get open index of next tag.
 		set openindex [string first $::mustache::openTag $part]
 
 		## Break tailcall when no new tag is found.
 		if {$openindex==-1} {
-			if {!$silent} {
-				append ::mustache::output $part
-			}
-			return
+			append output $part
+			return [list $output {}]
 		}
 
 		## Copy verbatim text up to next tag to output.
-		if {!$silent} {
-			append ::mustache::output [string range $part 0 $openindex-1]
-		}	
+		append output [string range $part 0 $openindex-1]
 
 		## Get close index of tag.
 		set closeindex [string first $::mustache::closeTag $part $openindex]
@@ -72,12 +67,10 @@ namespace eval ::mustache {
 					## Check whether the parameter is defined in this frame.
 					if {[dict exists $context {*}$thisframe $parameter]} {
 						## Yes. Substitute in output. Escape if neccessary.
-						if {!$silent} {
-							if {$escape} {
-								append ::mustache::output [escapeHtml [dict get $context {*}$thisframe $parameter]]
-							} else {
-								append ::mustache::output [dict get $context {*}$thisframe $parameter]
-							}
+						if {$escape} {
+							append output [escapeHtml [dict get $context {*}$thisframe $parameter]]
+						} else {
+							append output [dict get $context {*}$thisframe $parameter]
 						}
 
 						## Break.
@@ -99,7 +92,7 @@ namespace eval ::mustache {
 
 					## Skip silently if the values is false or an empty list.
 					if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
-						set tail [::mustache::compile $tail $context $newframe 1]
+						foreach {dummy tail} [::mustache::compile $tail $context $newframe] {}
 					} else {
 						## Otherwise loop over list.
 						foreach value $values {
@@ -108,7 +101,8 @@ namespace eval ::mustache {
 							dict set newcontext {*}$newframe $value
 
 							## Call recursive, get new tail.
-							set newtail [::mustache::compile $tail $newcontext $newframe $silent]
+							foreach {sectionoutput newtail} [::mustache::compile $tail $newcontext $newframe] {}
+							append output $sectionoutput
 						}
 
 						## Update tail to skip the section in this level.
@@ -116,7 +110,7 @@ namespace eval ::mustache {
 					}
 				} else {
 					## Key nonexistant. Skip silently over the section.
-					set tail [::mustache::compile $tail $context $newframe 1]
+					foreach {dummy tail} [::mustache::compile $tail $context $newframe] {}
 				}
 			}
 			startInvertedSection {
@@ -124,18 +118,22 @@ namespace eval ::mustache {
 			endSection {
 				## Break recursion if parameter matches innermost frame.
 				if {$parameter eq [lindex $frame end]} {
-					return $tail
+					return [list $output $tail]
 				}
 			}
 		}
 
 		## Tailcall with remainder of part, no iterator, current frame and current output.
-		tailcall ::mustache::compile $tail $context $frame $silent
+		tailcall ::mustache::compile $tail $context $frame $output
 	}
+
+
+	## Convenience proc: throw away tail.
+	proc mustache {part values} {lindex [::mustache::compile $part $values] 0}
 }
 
 
-mustache::compile {
+puts [mustache::mustache {
 
 <h1>Stadt, Land, Fluss</h1>
 <table><colgroup><col span="3"></colgroup>
@@ -146,10 +144,9 @@ mustache::compile {
 name "blub"
 aber "aber"
 zeilen {
-	{stadt "Bremen" land "Deutschland" fluss "Weser" aber "blub" nachbarn {{name "Niedersachsen"}}}
+	{stadt "Bremen" land "Deutschland" fluss "Weser" aber "foo" nachbarn {{name "Niedersachsen"}}}
 	{stadt "Paris" land "Frankreich" fluss "Seine" nachbarn {{name "Spanien"} {name "Andorra"} {name "Italien"} {name "Schweiz"} {name "Deutschland"} {name "Luxemburg"} {name "Belgien"} {name "Niederlande"}}}
 	{stadt "London" land "Großbritannien" fluss "Themse" nachbarn 0}
-}}
+}}]
 
-puts $::mustache::output
 
