@@ -1,6 +1,7 @@
 #!/opt/ActiveTcl-8.6/bin/tclsh8.6
 
 ## Basic mustache:
+## {{!comment}} - a comment
 ## {{item}} - substitute "item" (HTML escaped)
 ## {{{item}}} - substitute "item" (non-escaped)
 ## {{&item}}} - substitute "item" (non-escaped)
@@ -43,6 +44,7 @@ namespace eval ::mustache {
 		## Get command by tag type.
 		switch -- [string index $part $openindex+2] {
 			"\{" { incr closelength ; set command substitute ; set escape 0 }
+			"!" { set command comment }
 			"&" { set command substitute ; set escape 0 }
 			"#" { set command startSection }
 			"^" { set command startInvertedSection }
@@ -60,6 +62,7 @@ namespace eval ::mustache {
 
 		## Switch by command.
 		switch -- $command {
+			comment {}
 			substitute {
 				## Start with current frame.
 				set thisframe $frame
@@ -138,7 +141,7 @@ puts [mustache::mustache {
 <h1>Stadt, Land, Fluss</h1>
 <table><colgroup><col span="3"></colgroup>
 	<tr><th>Stadt</th><th>Land</th><th>Fluss</th><th>Nachbarn</th></tr>
-{{#zeilen}}	<tr><td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td><ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}</ol></td></tr>
+{{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td><ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}</ol></td></tr>
 {{/zeilen}}</table>
 } {
 name "blub"
