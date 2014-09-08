@@ -146,6 +146,11 @@ namespace eval ::mustache {
 					return [list $output $tail]
 				}
 			}
+			setDelimiters {
+				## Set tag delimiters.
+				set ::mustache::openTag [lindex [split $parameter { }] 0]
+				set ::mustache::closeTag [string range [lindex [split $parameter { }] 1] 0 end-1]
+			}
 		}
 
 		## Tailcall with remainder of part, no iterator, current frame and current output.
@@ -165,6 +170,10 @@ puts [mustache::mustache {
 	<tr><th>Stadt</th><th>Land</th><th>Fluss</th><th>Nachbarn</th></tr>
 {{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td><ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>keine</li>{{/nachbarn}}</ol></td></tr>
 {{/zeilen}}</table>
+{{=<% %>=}}
+<%name%>
+<%={{ }}=%>
+{{name}}
 } {
 name "blub"
 aber "aber"
