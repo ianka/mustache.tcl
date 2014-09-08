@@ -117,6 +117,28 @@ namespace eval ::mustache {
 				}
 			}
 			startInvertedSection {
+				## Check for existing key.
+				set newframe [concat $frame $parameter]
+				if {[dict exists $context {*}$newframe]} {
+					## Key exists.
+					set values [dict get $context {*}$newframe]
+
+					## Skip silently if the values is *not* false or an empty list.
+					if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
+						## Key is false or empty list. Render once. 
+						## Call recursive, get new tail.
+						foreach {sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
+						append output $sectionoutput
+					} else {
+						## Key is a valid list. Skip silently over the section.
+						foreach {dummy tail} [::mustache::compile $tail $context $newframe] {}
+					}
+				} else {
+					## Key doesn't exist. Render once. 
+					## Call recursive, get new tail.
+					foreach {sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
+					append output $sectionoutput
+				}
 			}
 			endSection {
 				## Break recursion if parameter matches innermost frame.
@@ -141,7 +163,7 @@ puts [mustache::mustache {
 <h1>Stadt, Land, Fluss</h1>
 <table><colgroup><col span="3"></colgroup>
 	<tr><th>Stadt</th><th>Land</th><th>Fluss</th><th>Nachbarn</th></tr>
-{{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td><ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}</ol></td></tr>
+{{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td><ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>keine</li>{{/nachbarn}}</ol></td></tr>
 {{/zeilen}}</table>
 } {
 name "blub"
@@ -149,7 +171,7 @@ aber "aber"
 zeilen {
 	{stadt "Bremen" land "Deutschland" fluss "Weser" aber "foo" nachbarn {{name "Niedersachsen"}}}
 	{stadt "Paris" land "Frankreich" fluss "Seine" nachbarn {{name "Spanien"} {name "Andorra"} {name "Italien"} {name "Schweiz"} {name "Deutschland"} {name "Luxemburg"} {name "Belgien"} {name "Niederlande"}}}
-	{stadt "London" land "Großbritannien" fluss "Themse" nachbarn 0}
+	{stadt "London" land "Großbritannien" fluss "Themse"}
 }}]
 
 
