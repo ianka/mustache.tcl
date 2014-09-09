@@ -156,10 +156,11 @@ set text {<h1>Addressbook</h1>
 {{/people}}</table>}
 set data [dict create \
 	phone "unknown" \
+	lineclass evenodd \
 	people [list \
-		[dict create lineclass evenodd name "Hanson" firstname "Fred" phone 555-123] \
-		[dict create lineclass evenodd name "Miller" firstname "Karen"] \
-		[dict create lineclass evenodd name "DeMarco" firstname "Greg" phone 129-182] \
+		[dict create name "Hanson" firstname "Fred" phone 555-123] \
+		[dict create name "Miller" firstname "Karen"] \
+		[dict create name "DeMarco" firstname "Greg" phone 129-182] \
 	] \
 ]
 

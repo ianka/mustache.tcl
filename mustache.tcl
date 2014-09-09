@@ -99,39 +99,55 @@ namespace eval ::mustache {
 				}
 			}
 			startSection {
-				## Check for existing key.
-				set newframe [concat $frame $parameter]
-				if {[dict exists $context {*}$newframe]} {
-					set values [dict get $context {*}$newframe]
+				## Start with current frame.
+				set thisframe $frame
+				while true {
+					## Check for existing key.
+					set newframe [concat $thisframe $parameter]
+					if {[dict exists $context {*}$newframe]} {
+						set values [dict get $context {*}$newframe]
 
-					## Skip silently if the values is false or an empty list.
-					if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
-						foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
-					} else {
-						## Check for lambda.
-						if {[llength [lindex $values 0]] == 1} {
-							## Feed raw section into lambda.
-							foreach {sectioninput dummy tail} [::mustache::compile $tail $context $toplevel $newframe] {}
-							append output [$values $sectioninput $context $frame]
+						## Skip silently if the values is false or an empty list.
+						if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
+							foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 						} else {
-							## Otherwise loop over list.
-							foreach value $values {
-								## Replace variant context by a single instance of it
-								set newcontext $context
-								dict set newcontext {*}$newframe $value
+							## Check for lambda.
+							if {[llength [lindex $values 0]] == 1} {
+								## Feed raw section into lambda.
+								foreach {sectioninput dummy tail} [::mustache::compile $tail $context $toplevel $newframe] {}
+								append output [$values $sectioninput $context $frame]
+							} else {
+								## Otherwise loop over list.
+								foreach value $values {
+									## Replace variant context by a single instance of it
+									set newcontext $context
+									dict set newcontext {*}$newframe $value
 
-								## Call recursive, get new tail.
-								foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $toplevel $newframe] {}
-								append output $sectionoutput
+									## Call recursive, get new tail.
+									foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $toplevel $newframe] {}
+									append output $sectionoutput
+								}
+
+								## Update tail to skip the section in this level.
+								set tail $newtail
 							}
-
-							## Update tail to skip the section in this level.
-							set tail $newtail
 						}
+
+						## Break
+						break
+					} else {
+						## No. Break if we are already in top frame.
+						if {$thisframe eq {}} {
+							## Key nonexistant. Skip silently over the section.
+							foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
+					
+							## Break.
+							break
+						}
+
+						## Check parent frame.
+						set thisframe [lrange $thisframe 0 end-1]
 					}
-				} else {
-					## Key nonexistant. Skip silently over the section.
-					foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 				}
 			}
 			startInvertedSection {
