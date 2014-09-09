@@ -1,18 +1,20 @@
-#!/opt/ActiveTcl-8.6/bin/tclsh8.6
+##
+## mustache.tcl - an implementation of the mustache templating language in tcl.
+## See https://github.com/mustache for further information about mustache.
+##
+## (C)2014 by Jan Kandziora <jjj@gmx.de>
+##
+## You may use, copy, distibute, and modify this software under the terms of
+## the GNU General Public License(GPL), Version 2. See file COPYING for details.
+##
 
-## Basic mustache:
-## {{!comment}} - a comment
-## {{item}} - substitute "item" (HTML escaped)
-## {{{item}}} - substitute "item" (non-escaped)
-## {{&item}}} - substitute "item" (non-escaped)
-## {{#list}} - start substitute section with "list"
-## {{^list}} - start "inverted" substitute section with "list"
-## {{/list}} - end substitute section with "list"
-## {{>partial}} - include another "partial"
-## {{=open close=}} - change "open" and close tags
+
+## Needs at least Tcl 8.6 because of tailcall.
+package require Tcl 8.6-
 
 
 namespace eval ::mustache {
+	## Helpers.
 	set HtmlEscapeMap [dict create "&" "&amp;" "<" "&lt;" ">" "&gt;" "\"" "&quot;" "'" "&#39;"]
 
 	proc escapeHtml {html} {
@@ -23,7 +25,9 @@ namespace eval ::mustache {
 	set openTag "\{\{"
 	set closeTag "\}\}"
 
-	proc compile {part context {frame {}} {input {}} {output {}}} {
+
+	## Main template compiler.
+	proc compile {part context {toplevel 0} {frame {}} {input {}} {output {}}} {
 		## Get open index of next tag.
 		set openindex [string first $::mustache::openTag $part]
 
@@ -102,12 +106,12 @@ namespace eval ::mustache {
 
 					## Skip silently if the values is false or an empty list.
 					if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
-						foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $newframe] {}
+						foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 					} else {
 						## Check for lambda.
 						if {[llength [lindex $values 0]] == 1} {
 							## Feed raw section into lambda.
-							foreach {sectioninput dummy tail} [::mustache::compile $tail $context $newframe] {}
+							foreach {sectioninput dummy tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 							append output [$values $sectioninput $context $frame]
 						} else {
 							## Otherwise loop over list.
@@ -117,7 +121,7 @@ namespace eval ::mustache {
 								dict set newcontext {*}$newframe $value
 
 								## Call recursive, get new tail.
-								foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $newframe] {}
+								foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $toplevel $newframe] {}
 								append output $sectionoutput
 							}
 
@@ -127,7 +131,7 @@ namespace eval ::mustache {
 					}
 				} else {
 					## Key nonexistant. Skip silently over the section.
-					foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $newframe] {}
+					foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 				}
 			}
 			startInvertedSection {
@@ -141,16 +145,16 @@ namespace eval ::mustache {
 					if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 						## Key is false or empty list. Render once. 
 						## Call recursive, get new tail.
-						foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
+						foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 						append output $sectionoutput
 					} else {
 						## Key is a valid list. Skip silently over the section.
-						foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $newframe] {}
+						foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 					}
 				} else {
 					## Key doesn't exist. Render once. 
 					## Call recursive, get new tail.
-					foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $newframe] {}
+					foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 					append output $sectionoutput
 				}
 			}
@@ -162,7 +166,8 @@ namespace eval ::mustache {
 			}
 			includePartial {
 				## Compile a partial from a variable.
-				foreach {sectioninput sectionoutput dummy} [::mustache::compile [set ::$parameter] $context $frame] {}
+				upvar #$toplevel $parameter partial
+				foreach {sectioninput sectionoutput dummy} [::mustache::compile $partial $context $toplevel $frame] {}
 				append output $sectionoutput
 			}
 			setDelimiters {
@@ -172,40 +177,16 @@ namespace eval ::mustache {
 			}
 		}
 
-		## Tailcall with remainder of part, no iterator, current frame and current output.
-		tailcall ::mustache::compile $tail $context $frame $input $output
+		## Tailcall for remaining content.
+		tailcall ::mustache::compile $tail $context $toplevel $frame $input $output
 	}
 
 
-	## Convenience proc: throw away tail.
-	proc mustache {part values {frame {}}} {lindex [::mustache::compile $part $values $frame] 1}
+	## Convenience proc: get output only.
+	proc mustache {part values {frame {}}} {lindex [::mustache::compile $part $values [expr [info level]-1] $frame] 1}
 }
 
-set ::keine {{{keine}}}
-set ::nachbarn {<ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>{{>keine}}</li>{{/nachbarn}}</ol>}
 
-puts [::mustache::mustache {
-
-<h1>Stadt, Land, Fluss</h1>
-<table><colgroup><col span="3"></colgroup>
-	<tr><th>Stadt</th><th>Land</th><th>Fluss</th><th>Nachbarn</th></tr>
-{{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td>{{>nachbarn}}</td></tr>
-{{/zeilen}}</table>
-{{#wrapped}}
-Mein Name ist {{name}}. Ich weiß bescheid.
-{{>nachbarn}}
-{{/wrapped}}
-{{=<% %>=}}<% name %>,<%={{ }}=%>{{name}}
-} {
-keine "nada"
-name "Hase"
-aber "aber"
-wrapped {::mustache::mustache}
-nachbarn {{name "Hans"} {name "Walter"}}
-zeilen {
-	{stadt "Bremen" land "Deutschland" fluss "Weser" aber "foo" nachbarn {{name "Niedersachsen"}}}
-	{stadt "London" land "Großbritannien" fluss "Themse"}
-	{stadt "Paris" land "Frankreich" fluss "Seine" nachbarn {{name "Spanien"} {name "Andorra"} {name "Italien"} {name "Schweiz"} {name "Deutschland"} {name "Luxemburg"} {name "Belgien"} {name "Niederlande"}}}
-}}]
-
+## All ok, actually provide this package.
+package provide mustache 1.0
 
