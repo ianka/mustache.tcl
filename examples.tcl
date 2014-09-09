@@ -69,7 +69,7 @@ sep
 ## You can easily contruct formatted lists from dictionaries. More, if a value
 ## isn't defined, all dictionary levels above are consulted to get the value.
 ## If all fails, nothing is rendered.
-set text {<h1>Adressbook</h1>
+set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
 {{#people}}	<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
@@ -89,7 +89,7 @@ sep
 
 ## There is another way to render wild-card entries which is useful for lists.
 ## The following example employs both. See the {{^phonenumers}} tag.
-set text {<h1>Adressbook</h1>
+set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
 {{#people}}	<tr><td>{{name}}</td><td>{{firstname}}</td><td><ul>{{#phonenumbers}}<li>{{type}}: {{phone}}</li>{{/phonenumbers}}{{^phonenumbers}}<li>has no phone!</li>{{/phonenumbers}}</ul></td></tr>
@@ -113,7 +113,7 @@ sep
 proc partialexample {} {
 	set linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{>phonepartial}}</td></tr>}
 	set phonepartial {<ul>{{#phonenumbers}}<li>{{type}}: {{phone}}</li>{{/phonenumbers}}{{^phonenumbers}}<li>has no phone!</li>{{/phonenumbers}}</ul>}
-	set text {<h1>Adressbook</h1>
+	set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
 {{#staff}}	{{>linepartial}}
@@ -141,40 +141,28 @@ proc partialexample {} {
 partialexample
 
 
-##
+## Instead of lists, sections can also contain a lambda which is passed the
+## whole verbatim content of the section.
+set ::even 0
+proc evenodd {part values frame} {
+	set ::even [expr 1-$::even]
+	lindex [split $part |] $::even
+}
 
+set text {<h1>Addressbook</h1>
+<table>
+	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
+{{#people}}	<tr class="{{#lineclass}}white|green{{/lineclass}}"><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
+{{/people}}</table>}
+set data [dict create \
+	phone "unknown" \
+	people [list \
+		[dict create lineclass evenodd name "Hanson" firstname "Fred" phone 555-123] \
+		[dict create lineclass evenodd name "Miller" firstname "Karen"] \
+		[dict create lineclass evenodd name "DeMarco" firstname "Greg" phone 129-182] \
+	] \
+]
 
-exit
-
-
-
-
-
-set ::keine {{{keine}}}
-set ::nachbarn {<ol>{{#nachbarn}}<li>{{name}}-{{aber}}</li>{{/nachbarn}}{{^nachbarn}}<li>{{>keine}}</li>{{/nachbarn}}</ol>}
-
-puts [::mustache::mustache {
-
-<h1>Stadt, Land, Fluss</h1>
-<table><colgroup><col span="3"></colgroup>
-	<tr><th>Stadt</th><th>Land</th><th>Fluss</th><th>Nachbarn</th></tr>
-{{#zeilen}}	<tr>{{! Macht gar nix}}<td>{{name}}-{{stadt}}</td><td>{{land}}</td><td>{{fluss}}</td><td>{{>nachbarn}}</td></tr>
-{{/zeilen}}</table>
-{{#wrapped}}
-Mein Name ist {{name}}. Ich weiß bescheid.
-{{>nachbarn}}
-{{/wrapped}}
-
-} {
-keine "nada"
-name "Hase"
-aber "aber"
-wrapped {::mustache::mustache}
-nachbarn {{name "Hans"} {name "Walter"}}
-zeilen {
-	{stadt "Bremen" land "Deutschland" fluss "Weser" aber "foo" nachbarn {{name "Niedersachsen"}}}
-	{stadt "London" land "Großbritannien" fluss "Themse"}
-	{stadt "Paris" land "Frankreich" fluss "Seine" nachbarn {{name "Spanien"} {name "Andorra"} {name "Italien"} {name "Schweiz"} {name "Deutschland"} {name "Luxemburg"} {name "Belgien"} {name "Niederlande"}}}
-}}]
+puts [::mustache::mustache $text $data]
 
 
