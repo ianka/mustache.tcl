@@ -28,8 +28,22 @@ proc testFile {name} {
 		## Increment test counter
 		incr ::counter
 
+		## Setup partials.
+		if {[dict exists $test partials]} {
+			foreach {partial ptemplate} [dict get $test partials] {
+				set $partial $ptemplate
+			}
+		}
+
 		## Do the test.
 		set result [::mustache::mustache [dict get $test template] [dict get $test data]]
+
+		## Remove partials.
+		if {[dict exists $test partials]} {
+			foreach {partial dummy} [dict get $test partials] {
+				unset $partial
+			}
+		}
 
 		## Report.
 		if {$result eq [dict get $test expected]} {
