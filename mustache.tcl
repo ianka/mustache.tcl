@@ -40,17 +40,6 @@ namespace eval ::mustache {
 		## Get pre-tag content.
 		set head [string range $part 0 $openindex-1]
 
-		## Special handling for comment tags.
-		if {[string index $part $openindex+[string length $::mustache::openTag]] eq "!"} {
-			## Remove standalone whitespace from head.
-			set linecomment [expr {[regsub {^[[:space:]]*$} $head {} head]|[regsub {\n[[:space:]]*$} $head "\n" head]}]
-		} else {
-			set linecomment 0
-		}
-
-		## Append head to output.
-		append output $head
-
 		## Get close index of tag.
 		set openlength [expr [string length $::mustache::openTag]+1]
 		set closeindex [string first $::mustache::closeTag $part $openindex+$openlength]
@@ -79,16 +68,27 @@ namespace eval ::mustache {
 #puts "command:$command<<<"
 #puts "parameter:$openindex,$openlength,$closeindex,$parameter<<<"
 
+		## Remove standalone blanks from head for some tags.
+		if {$command ne {substitute}} {
+			set standalone [expr {[regsub {^[[:blank:]]*$} $head {} head]|[regsub {\n[[:blank:]]*$} $head "\n" head]}]
+		} else {
+			set standalone 0
+		}
+
+		## Append head to output.
+		append output $head
+
 		## Get tail.
 		set tail [string range $part $closeindex+$closelength end]
+
+		## Remove trailing blanks and newline after standalone tag.
+		if {$standalone} {
+			regsub {^[[:blank:]]*\r?\n} $tail {} tail
+		}
 
 		## Switch by command.
 		switch -- $command {
 			comment {
-				## Remove trailing whitespace and newline after line comment.
-				if {$linecomment} {
-					regsub {^[[:space:]]*\n} $tail {} tail
-				}
 			}
 			substitute {
 				## Start with current frame.
