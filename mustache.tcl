@@ -68,24 +68,22 @@ namespace eval ::mustache {
 			set parameter [string trim [string range $tail $openindex+$openlength $closeindex-1]]
 	#puts "command:$command<<<"
 	#puts "parameter:$openindex,$openlength,$closeindex,$parameter<<<"
-
-			## Remove standalone blanks from head for some tags.
-			if {$command ne {substitute}} {
-				set standalone [expr {[regsub {^[[:blank:]]*$} $head {} head]|[regsub {\n[[:blank:]]*$} $head "\n" head]}]
-  		} else {
-				set standalone 0
-			}
-
-			## Append head to output.
-			append output $head
-
+	#
 			## Get tail.
 			set tail [string range $tail $closeindex+$closelength end]
 
-			## Remove trailing blanks and newline after standalone tag.
-			if {$standalone} {
-				regsub {^[[:blank:]]*\r?\n} $tail {} tail
-			}
+			## Remove standalone blanks from head for some tags.
+			if {$command ne {substitute}} {
+				## Remove trailing blanks and newline after standalone tag.
+				if {[regsub {^[[:blank:]]*$} $head {} newhead]|[regsub {\n[[:blank:]]*$} $newhead "\n" newhead]} {
+					if {[regsub {^[[:blank:]]*\r?\n} $tail {} tail]||[regsub {^[[:blank:]]*$} $tail {} tail]} {
+						set head $newhead
+					}
+				}
+  		}
+
+			## Append head to output.
+			append output $head
 
 			## Switch by command.
 			switch -- $command {
