@@ -22,10 +22,6 @@ namespace eval ::mustache {
 		#"
 	}
 
-	set openTag "\{\{"
-	set closeTag "\}\}"
-
-
 	## Main template compiler.
 	proc compile {part context {toplevel 0} {frame {}} {input {}} {output {}}} {
 		## Get open index of next tag.
@@ -45,7 +41,7 @@ namespace eval ::mustache {
 		set head [string range $part 0 $openindex-1]
 
 		## Special handling for comment tags.
-		if {[string index $part $openindex+2] eq "!"} {
+		if {[string index $part $openindex+[string length $::mustache::openTag]] eq "!"} {
 			## Remove standalone whitespace from head.
 			set linecomment [expr {[regsub {^[[:space:]]*$} $head {} head]|[regsub {\n[[:space:]]*$} $head "\n" head]}]
 		} else {
@@ -56,12 +52,12 @@ namespace eval ::mustache {
 		append output $head
 
 		## Get close index of tag.
-		set closeindex [string first $::mustache::closeTag $part $openindex]
 		set openlength [expr [string length $::mustache::openTag]+1]
+		set closeindex [string first $::mustache::closeTag $part $openindex+$openlength]
 		set closelength [string length $::mustache::closeTag]
 
 		## Get command by tag type.
-		switch -- [string index $part $openindex+2] {
+		switch -- [string index $part $openindex+[string length $::mustache::openTag]] {
 			"\{" { incr closelength ; set command substitute ; set escape 0 }
 			"!" { set command comment }
 			"&" { set command substitute ; set escape 0 }
@@ -80,6 +76,8 @@ namespace eval ::mustache {
 
 		## Get tag parameter.
 		set parameter [string trim [string range $part $openindex+$openlength $closeindex-1]]
+#puts "command:$command<<<"
+#puts "parameter:$openindex,$openlength,$closeindex,$parameter<<<"
 
 		## Get tail.
 		set tail [string range $part $closeindex+$closelength end]
@@ -122,33 +120,42 @@ namespace eval ::mustache {
 				while true {
 					## Check for existing key.
 					set newframe [concat $thisframe $parameter]
+#puts stderr "thisframe:$thisframe<<<"
+#puts stderr "newframe:$newframe<<<"
 					if {[dict exists $context {*}$newframe]} {
 						set values [dict get $context {*}$newframe]
 
-						## Skip silently if the values is false or an empty list.
+						## Skip silently if the values is boolean false or an empty list.
 						if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 							foreach {dummy1 dummy2 tail} [::mustache::compile $tail $context $toplevel $newframe] {}
 						} else {
-							## Check for lambda.
-							if {[llength [lindex $values 0]] == 1} {
-								## Feed raw section into lambda.
-								foreach {sectioninput dummy tail} [::mustache::compile $tail $context $toplevel $newframe] {}
-								append output [$values $sectioninput $context $frame]
+							## Check for values is boolean true
+							if {([string is boolean -strict $values] && $values)} {
+								## Render section in current frame.
+								foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $toplevel $frame] {}
+								append output $sectionoutput
 							} else {
-								## Otherwise loop over list.
-								foreach value $values {
-									## Replace variant context by a single instance of it
-									set newcontext $context
-									dict set newcontext {*}$newframe $value
+								## Check for lambda.
+								if {[llength [lindex $values 0]] == 1} {
+									## Feed raw section into lambda.
+									foreach {sectioninput dummy tail} [::mustache::compile $tail $context $toplevel $newframe] {}
+									append output [$values $sectioninput $context $frame]
+								} else {
+									## Otherwise loop over list.
+									foreach value $values {
+										## Replace variant context by a single instance of it
+										set newcontext $context
+										dict set newcontext {*}$newframe $value
 
-									## Call recursive, get new tail.
-									foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $toplevel $newframe] {}
-									append output $sectionoutput
+										## Call recursive, get new tail.
+										foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $toplevel $newframe] {}
+										append output $sectionoutput
+									}
+
+									## Update tail to skip the section in this level.
+									set tail $newtail
 								}
-
-								## Update tail to skip the section in this level.
-								set tail $newtail
-							}
+							}	
 						}
 
 						## Break
@@ -206,8 +213,10 @@ namespace eval ::mustache {
 			}
 			setDelimiters {
 				## Set tag delimiters.
-				set ::mustache::openTag [lindex [split $parameter { }] 0]
-				set ::mustache::closeTag [string range [lindex [split $parameter { }] 1] 0 end-1]
+				set ::mustache::openTag [lindex [split [string range $parameter 0 end-1] { }] 0]
+				set ::mustache::closeTag [lindex [split [string range $parameter 0 end-1] { }] 1]
+#puts stderr "openTag:$::mustache::openTag<<<"
+#puts stderr "closeTag:$::mustache::closeTag<<<"
 			}
 		}
 
@@ -216,8 +225,13 @@ namespace eval ::mustache {
 	}
 
 
-	## Convenience proc: get output only.
-	proc mustache {part values {frame {}}} {lindex [::mustache::compile $part $values [expr [info level]-1] $frame] 1}
+	## Main proc.
+	proc mustache {template values {frame {}}} {
+		set ::mustache::openTag "\{\{"
+		set ::mustache::closeTag "\}\}"
+
+		lindex [::mustache::compile $template $values [expr [info level]-1] $frame] 1
+	}
 }
 
 
