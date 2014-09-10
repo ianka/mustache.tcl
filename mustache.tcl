@@ -94,10 +94,18 @@ namespace eval ::mustache {
 				## Start with current frame.
 				set thisframe $frame
 				while true {
-					## Check whether the parameter is defined in this frame.
-					if {[dict exists $context {*}$thisframe $parameter]} {
-						## Yes. Treat doubles as numbers.
-						set value [dict get $context {*}$thisframe $parameter]
+					## Split up the parameter in dotted sections.
+					set parameter [split $parameter .]
+
+					## Check whether the parameter base is defined in this frame.
+					if {[dict exists $context {*}$thisframe [lindex $parameter 0]]} {
+						## Yes. Break if the full key doesn't exist.
+						if {![dict exists $context {*}$thisframe {*}$parameter]} break
+
+						## Get value.
+						set value [dict get $context {*}$thisframe {*}$parameter]
+
+						## Treat doubles as numbers.
 						if {[string is double -strict $value]} {
 							set value [expr $value]
 						}
@@ -141,26 +149,42 @@ namespace eval ::mustache {
 								foreach {dummy sectionoutput tail} [::mustache::compile $tail $context $toplevel $frame $opendelimiter $closedelimiter] {}
 								append output $sectionoutput
 							} else {
-								## Check for lambda.
-								if {[llength [lindex $values 0]] == 1} {
+								## Check for lambda
+								## (section value is just a single string value)
+								if {[llength $values] == 1} {
 									## Feed raw section into lambda.
 									foreach {sectioninput dummy tail} [::mustache::compile $tail $context $toplevel $newframe $opendelimiter $closedelimiter] {}
 									append output [$values $sectioninput $context $frame]
 								} else {
-									## Otherwise loop over list.
-									foreach value $values {
+									## Check for simple list vs. list of lists.
+									## (section value is a list of key/value pairs)
+									## WARNING: keys with whitespace in it are not allowed to
+									## make it possible to detect list of lists.
+									if {[llength [lindex $values 0]] == 1} {
+										## Simple list.
 										## Replace variant context by a single instance of it
 										set newcontext $context
-										dict set newcontext {*}$newframe $value
+										dict set newcontext {*}$newframe $values
 
 										## Call recursive, get new tail.
-										foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $toplevel $newframe $opendelimiter $closedelimiter] {}
+										foreach {dummy sectionoutput tail} [::mustache::compile $tail $newcontext $toplevel $newframe $opendelimiter $closedelimiter] {}
 										append output $sectionoutput
-									}
+									} else {
+										## Otherwise loop over list.
+										foreach value $values {
+											## Replace variant context by a single instance of it.
+											set newcontext $context
+											dict set newcontext {*}$newframe $value
 
-									## Update tail to skip the section in this level.
-									set tail $newtail
-								}
+											## Call recursive, get new tail.
+											foreach {dummy sectionoutput newtail} [::mustache::compile $tail $newcontext $toplevel $newframe $opendelimiter $closedelimiter] {}
+											append output $sectionoutput
+										}
+
+										## Update tail to skip the section in this level.
+										set tail $newtail
+									}
+								}	
 							}	
 						}
 
