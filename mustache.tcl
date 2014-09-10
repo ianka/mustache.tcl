@@ -38,9 +38,22 @@ namespace eval ::mustache {
 			return [list $input $output {}]
 		}
 
-		## Copy verbatim text up to next tag to input and output.
+		## Copy verbatim text up to next tag to input.
 		append input [string range $part 0 $openindex-1]
-		append output [string range $part 0 $openindex-1]
+
+		## Get pre-tag content.
+		set head [string range $part 0 $openindex-1]
+
+		## Special handling for comment tags.
+		if {[string index $part $openindex+2] eq "!"} {
+			## Remove standalone whitespace from head.
+			set linecomment [expr {[regsub {^[[:space:]]*$} $head {} head]|[regsub {\n[[:space:]]*$} $head "\n" head]}]
+		} else {
+			set linecomment 0
+		}
+
+		## Append head to output.
+		append output $head
 
 		## Get close index of tag.
 		set closeindex [string first $::mustache::closeTag $part $openindex]
@@ -73,7 +86,12 @@ namespace eval ::mustache {
 
 		## Switch by command.
 		switch -- $command {
-			comment {}
+			comment {
+				## Remove trailing whitespace and newline after line comment.
+				if {$linecomment} {
+					regsub {^[[:space:]]*\n} $tail {} tail
+				}
+			}
 			substitute {
 				## Start with current frame.
 				set thisframe $frame
