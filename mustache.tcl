@@ -70,7 +70,7 @@ namespace eval ::mustache {
 
 		## Remove standalone blanks from head for some tags.
 		if {$command ne {substitute}} {
-			set standalone [expr {[regsub {^[[:blank:]]*$} $head {} head]|[regsub {\n[[:blank:]]*$} $head "\n" head]}]
+			set standalone [regsub -line {^[[:blank:]]*$} $head {} head]
 		} else {
 			set standalone 0
 		}
