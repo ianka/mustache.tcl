@@ -96,11 +96,17 @@ namespace eval ::mustache {
 				while true {
 					## Check whether the parameter is defined in this frame.
 					if {[dict exists $context {*}$thisframe $parameter]} {
-						## Yes. Substitute in output. Escape if neccessary.
+						## Yes. Treat doubles as numbers.
+						set value [dict get $context {*}$thisframe $parameter]
+						if {[string is double -strict $value]} {
+							set value [expr $value]
+						}
+
+						## Substitute in output, escape if neccessary.
 						if {$escape} {
-							append output [escapeHtml [dict get $context {*}$thisframe $parameter]]
+							append output [escapeHtml $value]
 						} else {
-							append output [dict get $context {*}$thisframe $parameter]
+							append output $value
 						}
 
 						## Break.
