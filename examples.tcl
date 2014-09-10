@@ -1,4 +1,4 @@
-#!/opt/ActiveTcl-8.6/bin/tclsh8.6
+#!/usr/bin/tclsh
 
 ##
 ## This is an example file for mustache.tcl by Jan Kandziora.
@@ -19,9 +19,6 @@
 ## {{=open close=}} - change "open" and "close" tags
 ##
 
-
-## Please note the mustache.tcl package makes use of the new tailcall
-## feature of Tcl-8.6, which means you need at least that Tcl version.
 
 ## Yes, we require this package. (^_^);
 package require mustache

@@ -1,4 +1,4 @@
-#!/opt/ActiveTcl-8.6/bin/tclsh8.6
+#!/usr/bin/tclsh
 ##
 ## tests.tcl - a test script for mustache.tcl using the original mustache
 ## test suite from https://github.com/mustache/spec/tree/master/specs
