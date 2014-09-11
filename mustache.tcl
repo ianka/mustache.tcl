@@ -144,11 +144,14 @@ namespace eval ::mustache {
 					}
 				}
 				startSection {
+					## Split up the parameter in dotted sections.
+					set parameter [split $parameter .]
+
 					## Start with current frame.
 					set thisframe $frame
 					while true {
 						## Check for existing key.
-						set newframe [concat $thisframe $parameter]
+						set newframe [concat $thisframe {*}$parameter]
 	#puts stderr "thisframe:$thisframe<<<"
 	#puts stderr "newframe:$newframe<<<"
 						if {[dict exists $context {*}$newframe]} {
@@ -240,8 +243,11 @@ namespace eval ::mustache {
 					}
 				}
 				startInvertedSection {
+					## Split up the parameter in dotted sections.
+					set parameter [split $parameter .]
+
 					## Check for existing key.
-					set newframe [concat $frame $parameter]
+					set newframe [concat $frame {*}$parameter]
 					if {[dict exists $context {*}$newframe]} {
 						## Key exists.
 						set values [dict get $context {*}$newframe]
@@ -264,8 +270,11 @@ namespace eval ::mustache {
 					}
 				}
 				endSection {
+					## Split up the parameter in dotted sections.
+					set parameter [split $parameter .]
+
 					## Break recursion if parameter matches innermost frame.
-					if {$parameter eq [lindex $frame end]} {
+					if {$parameter eq [lrange $frame end-[expr [llength $parameter]-1] end]} {
 						return [list $input $output $tail $iteratorpassed]
 					}
 				}
