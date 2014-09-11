@@ -13,11 +13,6 @@ namespace eval ::mustache {
 	## Helpers.
 	set HtmlEscapeMap [dict create "&" "&amp;" "<" "&lt;" ">" "&gt;" "\"" "&quot;" "'" "&#39;"]
 
-	proc escapeHtml {html} {
-		subst [regsub -all {&(?!\w+;)|[<>"']} $html {[expr {[dict exists $::mustache::HtmlEscapeMap {&}]?[dict get $::mustache::HtmlEscapeMap {&}]:{&}}]}]
-		#"
-	}
-
 	## Main template compiler.
 	proc compile {tail context {toplevel 0} {frame {}} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
 		set iteratorpassed 0
@@ -111,7 +106,7 @@ namespace eval ::mustache {
 
 							## Substitute in output, escape if neccessary.
 							if {$escape} {
-								append output [escapeHtml $value]
+								append output [string map $::mustache::HtmlEscapeMap $value]
 							} else {
 								append output $value
 							}
@@ -138,7 +133,7 @@ namespace eval ::mustache {
 
 					## Substitute in output, escape if neccessary.
 					if {$escape} {
-						append output [escapeHtml $value]
+						append output [string map $::mustache::HtmlEscapeMap $value]
 					} else {
 						append output $value
 					}
