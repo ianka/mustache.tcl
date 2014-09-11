@@ -14,13 +14,20 @@ namespace eval ::mustache {
 	set HtmlEscapeMap [dict create "&" "&amp;" "<" "&lt;" ">" "&gt;" "\"" "&quot;" "'" "&#39;"]
 
 	## Main template compiler.
-	proc compile {tail context {toplevel 0} {frame {}} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
+	proc compile {tail context {toplevel 0} {frame {}} {standalone 1} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
 		set iteratorpassed 0
 
 		## Loop over content.
 		while true {
 			## Get open index of next tag.
 			set openindex [string first $opendelimiter $tail]
+
+			## If standalone flag is cleared, look for next newline.
+			if {!$standalone} {
+				## Set standalone flag if a newline precedes the first tag.
+				set newlineindex [string first "\n" $tail]
+				set standalone [expr {($newlineindex>=0) && ($newlineindex < $openindex)} ]
+			}
 
 			## Break loop when no new tag is found.
 			if {$openindex==-1} {
@@ -67,14 +74,21 @@ namespace eval ::mustache {
 			## Get tail.
 			set tail [string range $tail $closeindex+$closelength end]
 
-			## Remove standalone blanks from head for some tags.
-			if {$command ne {substitute}} {
-				## Remove trailing blanks and newline after standalone tag.
-				if {[regsub {^[[:blank:]]*$} $head {} newhead]|[regsub {\n[[:blank:]]*$} $newhead "\n" newhead]} {
-					if {[regsub {^[[:blank:]]*\r?\n} $tail {} tail]||[regsub {^[[:blank:]]*$} $tail {} tail]} {
-						set head $newhead
-					}
-				}
+			## Remove standalone flag for some occacions.
+			if {$standalone && ($command eq {substitute})} {
+				set standalone 0
+			}
+			if {$standalone && !([regsub {^[[:blank:]]*$} $head {} newhead]||[regsub {\n[[:blank:]]*$} $head "\n" newhead])} {
+				set standalone 0
+			}
+			if {$standalone && !([regsub {^[[:blank:]]*\r?\n} $tail {} newtail]||[regsub {^[[:blank:]]*$} $tail {} newtail])} {
+				set standalone 0
+			}
+			
+			## Remove blanks and newline from head end and tail start for standalone tags.
+			if {$standalone} {
+				set head $newhead
+				set tail $newtail
   		}
 
 			## Append head to output.
@@ -154,19 +168,19 @@ namespace eval ::mustache {
 
 							## Skip silently if the values is boolean false or an empty list.
 							if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
-								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe] {}
+								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone] {}
 							} else {
 								## Check for values is boolean true
 								if {([string is boolean -strict $values] && $values)} {
 									## Render section in current frame.
-									foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $frame $opendelimiter $closedelimiter] {}
+									foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $frame $standalone $opendelimiter $closedelimiter] {}
 									append output $sectionoutput
 								} else {
 									## Check for lambda
 									## (section value is just a single string value)
 									if {[llength $values] == 1} {
 										## Feed raw section into lambda.
-										foreach {sectioninput dummy1 tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $opendelimiter $closedelimiter] {}
+										foreach {sectioninput dummy1 tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $opendelimiter $closedelimiter] {}
 										append output [$values $sectioninput $context $frame]
 									} else {
 										## Check for simple list vs. list of lists.
@@ -180,7 +194,7 @@ namespace eval ::mustache {
 											dict set newcontext {*}$newframe $values
 
 											## Call recursive, get new tail.
-											foreach {dummy sectionoutput newtail iterator} [::mustache::compile $tail $newcontext $toplevel $newframe $opendelimiter $closedelimiter] {}
+											foreach {dummy sectionoutput newtail iterator} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $opendelimiter $closedelimiter] {}
 
 											## Check if iterator has been passed in the section.
 											if {!$iterator} {
@@ -194,7 +208,7 @@ namespace eval ::mustache {
 													dict set newcontext {*}$newframe $value
 
 													## Call recursive, get new tail.
-													foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $opendelimiter $closedelimiter] {}
+													foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $opendelimiter $closedelimiter] {}
 													append output $sectionoutput
 												}
 											}
@@ -209,7 +223,7 @@ namespace eval ::mustache {
 												dict set newcontext {*}$newframe $value
 
 												## Call recursive, get new tail.
-												foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $opendelimiter $closedelimiter] {}
+												foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $opendelimiter $closedelimiter] {}
 												append output $sectionoutput
 											}
 
@@ -226,7 +240,7 @@ namespace eval ::mustache {
 							## No. Break if we are already in top frame.
 							if {$thisframe eq {}} {
 								## Key nonexistant. Skip silently over the section.
-								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe] {}
+								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone] {}
 						
 								## Break.
 								break
@@ -251,16 +265,16 @@ namespace eval ::mustache {
 						if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 							## Key is false or empty list. Render once. 
 							## Call recursive, get new tail.
-							foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $opendelimiter $closedelimiter] {}
+							foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $opendelimiter $closedelimiter] {}
 							append output $sectionoutput
 						} else {
 							## Key is a valid list. Skip silently over the section.
-							foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe] {}
+							foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone] {}
 						}
 					} else {
 						## Key doesn't exist. Render once. 
 						## Call recursive, get new tail.
-						foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $opendelimiter $closedelimiter] {}
+						foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $opendelimiter $closedelimiter] {}
 						append output $sectionoutput
 					}
 				}
@@ -276,7 +290,7 @@ namespace eval ::mustache {
 				includePartial {
 					## Compile a partial from a variable.
 					upvar #$toplevel $parameter partial
-					foreach {sectioninput sectionoutput dummy1 dummy2} [::mustache::compile $partial $context $toplevel $frame] {}
+					foreach {sectioninput sectionoutput dummy1 dummy2} [::mustache::compile $partial $context $toplevel $frame $standalone] {}
 					append output $sectionoutput
 				}
 				setDelimiters {
@@ -285,8 +299,11 @@ namespace eval ::mustache {
 					set closedelimiter [lindex [split [string range $parameter 0 end-1] { }] 1]
 				}
 			}
+
+			## Loop with standalone flag set.
+			set standalone 1
 		}
-		}
+	}
 
 
 	## Main proc.
