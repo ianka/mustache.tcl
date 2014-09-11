@@ -20,13 +20,18 @@ proc testFile {name} {
 	## Load test content.
 	set tests [::yaml::yaml2dict [read $fd]]
 
-	## Print overview.
-	puts \n[underline "Test file $name:" =]\n[dict get $tests overview]\n
+	## Print overview when all tests should be performed.
+	if {[lindex $::argv 0] eq {}} {
+		puts \n[underline "Test file $name:" =]\n[dict get $tests overview]\n
+	}
 
 	## Go through all tests.
 	foreach test [dict get $tests tests] {
 		## Increment test counter
 		incr ::counter
+
+		## Ignore test if a special test number should be performed and this isn't it.
+		if {[lindex $::argv 0] ni [list {} $::counter]} continue
 
 		## Setup partials.
 		if {[dict exists $test partials]} {
