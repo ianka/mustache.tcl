@@ -292,8 +292,10 @@ namespace eval ::mustache {
 				includePartial {
 					## Compile a partial from a variable.
 					upvar #$toplevel $parameter partial
-					foreach {sectioninput sectionoutput dummy1 dummy2} [::mustache::compile $partial $context $toplevel $frame $standalone] {}
-					append output $sectionoutput
+					if {[info exists partial]} {
+						foreach {sectioninput sectionoutput dummy1 dummy2} [::mustache::compile $partial $context $toplevel $frame $standalone] {}
+						append output $sectionoutput
+					}	
 				}
 				setDelimiters {
 					## Set tag delimiters.
