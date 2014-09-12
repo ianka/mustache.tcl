@@ -13,10 +13,20 @@ namespace eval ::mustache {
 	## Helpers.
 	set HtmlEscapeMap [dict create "&" "&amp;" "<" "&lt;" ">" "&gt;" "\"" "&quot;" "'" "&#39;"]
 
+	## Build search tree.
+	proc searchtree {frame} {
+		set thisframe $frame
+		while {$thisframe ne {}} {
+			lappend tree $thisframe
+			set thisframe [lrange $thisframe 0 end-1]
+		}
+		lappend tree {} {*}[lreverse [lrange $frame 1 end]]
+	}
+
 	## Main template compiler.
 	proc compile {tail context {toplevel 0} {frame {}} {standalone 1} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
 		set iteratorpassed 0
-
+#puts stderr "FFF:$frame<<<"
 		## Loop over content.
 		while true {
 			## Get open index of next tag.
@@ -99,12 +109,11 @@ namespace eval ::mustache {
 				comment {
 				}
 				substitute {
-					## Start with current frame.
-					set thisframe $frame
-					while true {
-						## Split up the parameter in dotted sections.
-						set parameter [split $parameter .]
+					## Split up the parameter into dotted sections.
+					set parameter [split $parameter .]
 
+					## Check search tree.
+					foreach thisframe [::mustache::searchtree $frame ] {
 						## Check whether the parameter base is defined in this frame.
 						if {[dict exists $context {*}$thisframe [lindex $parameter 0]]} {
 							## Yes. Break if the full key doesn't exist.
@@ -127,12 +136,6 @@ namespace eval ::mustache {
 
 							## Break.
 							break
-						} else {
-							## No. Break if we are already in top frame.
-							if {$thisframe eq {}} break
-							
-							## Check parent frame.
-							set thisframe [lrange $thisframe 0 end-1]
 						}
 					}
 				}
@@ -156,15 +159,14 @@ namespace eval ::mustache {
 					## Split up the parameter in dotted sections.
 					set parameter [split $parameter .]
 
-					## Start with current frame.
-					set thisframe $frame
+					## Start with new frame.
+					set newframe [concat $frame {*}$parameter]
+					set thisframe $newframe
 					while true {
+#puts stderr "AAA:$newframe<<<"
 						## Check for existing key.
-						set newframe [concat $thisframe {*}$parameter]
-	#puts stderr "thisframe:$thisframe<<<"
-	#puts stderr "newframe:$newframe<<<"
-						if {[dict exists $context {*}$newframe]} {
-							set values [dict get $context {*}$newframe]
+						if {[dict exists $context {*}$thisframe]} {
+							set values [dict get $context {*}$thisframe]
 
 							## Skip silently if the values is boolean false or an empty list.
 							if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
@@ -194,8 +196,8 @@ namespace eval ::mustache {
 											dict set newcontext {*}$newframe $values
 
 											## Call recursive, get new tail.
+#puts stderr "EEE:$newframe<<<"
 											foreach {dummy sectionoutput newtail iterator} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $opendelimiter $closedelimiter] {}
-
 											## Check if iterator has been passed in the section.
 											if {!$iterator} {
 												## No. Section output is ok.
@@ -237,7 +239,10 @@ namespace eval ::mustache {
 							## Break
 							break
 						} else {
-							## No. Break if we are already in top frame.
+							## Check parent frame.
+							set thisframe [lrange $thisframe 0 end-1]
+
+							## Break if we are already in top frame.
 							if {$thisframe eq {}} {
 								## Key nonexistant. Skip silently over the section.
 								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone] {}
@@ -245,9 +250,6 @@ namespace eval ::mustache {
 								## Break.
 								break
 							}
-
-							## Check parent frame.
-							set thisframe [lrange $thisframe 0 end-1]
 						}
 					}
 				}
