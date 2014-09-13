@@ -302,9 +302,6 @@ namespace eval ::mustache {
 					set closedelimiter [lindex [split [string range $parameter 0 end-1] { }] 1]
 				}
 			}
-
-			## Loop with standalone flag set.
-			set standalone 1
 		}
 	}
 
