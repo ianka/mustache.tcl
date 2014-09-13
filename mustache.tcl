@@ -107,9 +107,7 @@ namespace eval ::mustache {
 
 			## Get tag parameter.
 			set parameter [string trim [string range $tail $openindex+$openlength $closeindex-1]]
-	#puts "command:$command<<<"
-	#puts "parameter:$openindex,$openlength,$closeindex,$parameter<<<"
-	#
+
 			## Get tail.
 			set tail [string range $tail $closeindex+$closelength end]
 
@@ -158,8 +156,7 @@ namespace eval ::mustache {
 							## Check for lambda.
 							if {![catch {dict get $value $::mustache::LambdaPrefix} body]} {
 								## Lambda.
-								set value [eval [::lambda {} $body]]
-								foreach {dummy1 value dummy2 dummy3} [::mustache::compile $value $context $toplevel $frame $standalone $skippartials $indent] {}
+								foreach {dummy1 value dummy2 dummy3} [::mustache::compile [eval [::lambda {} $body]] $context $toplevel $frame $standalone $skippartials $indent] {}
 							} {
 								## Value. Treat doubles as numbers.
 								if {[string is double -strict $value]} {
@@ -218,10 +215,15 @@ namespace eval ::mustache {
 									append output $sectionoutput
 								} else {
 									## Check for lambda.
-									if {[string first $::mustache::LambdaPrefix $values] == 0} {
-										## Feed raw section into lambda.
+									if {![catch {dict get $values $::mustache::LambdaPrefix} body]} {
+										## Lambda. Get section input.
 										foreach {sectioninput dummy1 tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
-										append output [$values $sectioninput $context $frame]
+
+										## Evaluate lambda with section input.
+										foreach {dummy1 value dummy2 dummy3} [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $frame $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+
+										## Substitute in output, escape.
+										append output $value
 									} else {
 										## Check for simple list vs. list of lists.
 										## (section value is a list of key/value pairs)
@@ -319,7 +321,6 @@ namespace eval ::mustache {
 				endSection {
 					## Split up the parameter in dotted sections.
 					set parameter [split $parameter .]
-
 					## Break recursion if parameter matches innermost frame.
 					if {$parameter eq [lrange $frame end-[expr [llength $parameter]-1] end]} {
 						return [list $input $output $tail $iteratorpassed]
