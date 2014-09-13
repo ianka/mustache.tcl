@@ -58,8 +58,8 @@ proc testFile {name} {
 			puts "[format %3d $::counter]: \[failed\] [dict get $test name] ([dict get $test desc])"
 			puts "Template: [dict get $test template]"
 			puts "Data: [dict get $test data]"
-			puts "Expected: \"[dict get $test expected]\""
-			puts "Result: \"$result\""
+			puts "Expected: \"[string map {" " "_"} [dict get $test expected]]\""
+			puts "Result: \"[string map {" " "_"} $result]\""
 		}	
 		
 	}
