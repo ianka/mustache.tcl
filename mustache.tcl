@@ -25,8 +25,13 @@ namespace eval ::mustache {
 	}
 
 	## Main template compiler.
-	proc compile {tail context {toplevel 0} {frame {}} {standalone 1} {skippartials 0} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
+	proc compile {tail context {toplevel 0} {frame {}} {standalone 1} {skippartials 0} {indent {}} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
 		set iteratorpassed 0
+		set partialsindent $indent
+
+		## Add indent to first output line.
+		append output $indent
+
 		## Loop over content.
 		while true {
 			## Get open index of next tag.
@@ -39,18 +44,37 @@ namespace eval ::mustache {
 				set standalone [expr {($newlineindex>=0) && ($newlineindex < $openindex)} ]
 			}
 
-			## Break loop when no new tag is found.
-			if {$openindex==-1} {
-				append input $tail
-				append output $tail
-				return [list $input $output {} 0]
+			## Get pre-tag content.
+			if {$openindex>=0} {
+				set head [string range $tail 0 $openindex-1]
+			} else {
+				set head $tail
 			}
 
 			## Copy verbatim text up to next tag to input.
-			append input [string range $tail 0 $openindex-1]
+			append input $head
 
-			## Get pre-tag content.
-			set head [string range $tail 0 $openindex-1]
+			## Split head into lines for indentation.
+			set headlist [split $head \n]
+
+			## Break loop when no new tag is found.
+			if {$openindex==-1} {
+				## Indent pre-tag content.
+				if {$headlist eq {}} {
+					set head {}
+				} elseif {[lindex $headlist end] ne {}} {
+					set head [join $headlist "\n$indent"]
+				} else {
+					set head [join [lrange $headlist 0 end-1] "\n$indent"]\n
+				}
+
+				## Return with input and compiled output.
+				append output $head
+				return [list $input $output {} 0]
+			}
+
+			## Indent pre-tag content.
+			set head [join $headlist "\n$indent"]
 
 			## Get close index of tag.
 			set openlength [expr [string length $opendelimiter]+1]
@@ -94,9 +118,13 @@ namespace eval ::mustache {
 			if {$standalone && !([regsub {^[[:blank:]]*\r?\n} $tail {} newtail]||[regsub {^[[:blank:]]*$} $tail {} newtail])} {
 				set standalone 0
 			}
-			
-			## Remove blanks and newline from head end and tail start for standalone tags.
+	
+			## If still standalone tag:
 			if {$standalone} {
+				## Set indent to use for partials.
+				set partialsindent $indent[regsub {.*?([[:blank:]]*)$} $head {\1}]
+
+				## Remove blanks and newline from head end and tail start for standalone tags.
 				set head $newhead
 				set tail $newtail
   		}
@@ -174,13 +202,13 @@ namespace eval ::mustache {
 								## Check for values is boolean true
 								if {([string is boolean -strict $values] && $values)} {
 									## Render section in current frame.
-									foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $frame $standalone $skippartials $opendelimiter $closedelimiter] {}
+									foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $frame $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
 									append output $sectionoutput
 								} else {
 									## Check for lambda.
 									if {[string first $::mustache::LambdaPrefix $values] == 0} {
 										## Feed raw section into lambda.
-										foreach {sectioninput dummy1 tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $opendelimiter $closedelimiter] {}
+										foreach {sectioninput dummy1 tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
 										append output [$values $sectioninput $context $frame]
 									} else {
 										## Check for simple list vs. list of lists.
@@ -194,7 +222,7 @@ namespace eval ::mustache {
 											dict set newcontext {*}$newframe $values
 
 											## Call recursive, get new tail.
-											foreach {dummy sectionoutput newtail iterator} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $opendelimiter $closedelimiter] {}
+											foreach {dummy sectionoutput newtail iterator} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
 											## Check if iterator has been passed in the section.
 											if {!$iterator} {
 												## No. Section output is ok.
@@ -207,7 +235,7 @@ namespace eval ::mustache {
 													dict set newcontext {*}$newframe $value
 
 													## Call recursive, get new tail.
-													foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $opendelimiter $closedelimiter] {}
+													foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
 													append output $sectionoutput
 												}
 											}
@@ -222,7 +250,7 @@ namespace eval ::mustache {
 												dict set newcontext {*}$newframe $value
 
 												## Call recursive, get new tail.
-												foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $opendelimiter $closedelimiter] {}
+												foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
 												append output $sectionoutput
 											}
 
@@ -263,7 +291,7 @@ namespace eval ::mustache {
 						if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 							## Key is false or empty list. Render once. 
 							## Call recursive, get new tail.
-							foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $opendelimiter $closedelimiter] {}
+							foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
 							append output $sectionoutput
 						} else {
 							## Key is a valid list. Skip silently over the section.
@@ -272,7 +300,7 @@ namespace eval ::mustache {
 					} else {
 						## Key doesn't exist. Render once. 
 						## Call recursive, get new tail.
-						foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $opendelimiter $closedelimiter] {}
+						foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
 						append output $sectionoutput
 					}
 				}
@@ -291,7 +319,7 @@ namespace eval ::mustache {
 						## Compile a partial from a variable.
 						upvar #$toplevel $parameter partial
 						if {[info exists partial]} {
-							foreach {sectioninput sectionoutput dummy1 dummy2} [::mustache::compile $partial $context $toplevel $frame $standalone] {}
+							foreach {sectioninput sectionoutput dummy1 dummy2} [::mustache::compile $partial $context $toplevel $frame $standalone 0 $partialsindent] {}
 							append output $sectionoutput
 						}
 					}
