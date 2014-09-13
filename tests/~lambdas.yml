@@ -15,13 +15,14 @@ tests:
   - name: Interpolation
     desc: A lambda's return value should be interpolated.
     data:
-      lambda: !code
+      lambda:
         ruby:    'proc { "world" }'
         perl:    'sub { "world" }'
         js:      'function() { return "world" }'
         php:     'return "world";'
         python:  'lambda: "world"'
         clojure: '(fn [] "world")'
+        Λtcl:    'return "world"'
     template: "Hello, {{lambda}}!"
     expected: "Hello, world!"
 
@@ -29,13 +30,14 @@ tests:
     desc: A lambda's return value should be parsed.
     data:
       planet: "world"
-      lambda: !code
+      lambda:
         ruby:    'proc { "{{planet}}" }'
         perl:    'sub { "{{planet}}" }'
         js:      'function() { return "{{planet}}" }'
         php:     'return "{{planet}}";'
         python:  'lambda: "{{planet}}"'
         clojure: '(fn [] "{{planet}}")'
+        Λtcl:    'return "{{planet}}"'
     template: "Hello, {{lambda}}!"
     expected: "Hello, world!"
 
@@ -43,39 +45,42 @@ tests:
     desc: A lambda's return value should parse with the default delimiters.
     data:
       planet: "world"
-      lambda: !code
+      lambda:
         ruby:    'proc { "|planet| => {{planet}}" }'
         perl:    'sub { "|planet| => {{planet}}" }'
         js:      'function() { return "|planet| => {{planet}}" }'
         php:     'return "|planet| => {{planet}}";'
         python:  'lambda: "|planet| => {{planet}}"'
         clojure: '(fn [] "|planet| => {{planet}}")'
+        Λtcl:    'return "|planet| => {{planet}}"'
     template: "{{= | | =}}\nHello, (|&lambda|)!"
     expected: "Hello, (|planet| => world)!"
 
   - name: Interpolation - Multiple Calls
     desc: Interpolated lambdas should not be cached.
     data:
-      lambda: !code
+      lambda:
         ruby:    'proc { $calls ||= 0; $calls += 1 }'
         perl:    'sub { no strict; $calls += 1 }'
         js:      'function() { return (g=(function(){return this})()).calls=(g.calls||0)+1 }'
         php:     'global $calls; return ++$calls;'
         python:  'lambda: globals().update(calls=globals().get("calls",0)+1) or calls'
         clojure: '(def g (atom 0)) (fn [] (swap! g inc))'
+        Λtcl:    'incr ::calls'
     template: '{{lambda}} == {{{lambda}}} == {{lambda}}'
     expected: '1 == 2 == 3'
 
   - name: Escaping
     desc: Lambda results should be appropriately escaped.
     data:
-      lambda: !code
+      lambda:
         ruby:    'proc { ">" }'
         perl:    'sub { ">" }'
         js:      'function() { return ">" }'
         php:     'return ">";'
         python:  'lambda: ">"'
         clojure: '(fn [] ">")'
+        Λtcl:    'return ">"'
     template: "<{{lambda}}{{{lambda}}}"
     expected: "<&gt;>"
 
@@ -83,7 +88,7 @@ tests:
     desc: Lambdas used for sections should receive the raw section string.
     data:
       x: 'Error!'
-      lambda: !code
+      lambda: Λ
         ruby:    'proc { |text| text == "{{x}}" ? "yes" : "no" }'
         perl:    'sub { $_[0] eq "{{x}}" ? "yes" : "no" }'
         js:      'function(txt) { return (txt == "{{x}}" ? "yes" : "no") }'
@@ -97,7 +102,7 @@ tests:
     desc: Lambdas used for sections should have their results parsed.
     data:
       planet: "Earth"
-      lambda: !code
+      lambda: Λ
         ruby:    'proc { |text| "#{text}{{planet}}#{text}" }'
         perl:    'sub { $_[0] . "{{planet}}" . $_[0] }'
         js:      'function(txt) { return txt + "{{planet}}" + txt }'
@@ -111,7 +116,7 @@ tests:
     desc: Lambdas used for sections should parse with the current delimiters.
     data:
       planet: "Earth"
-      lambda: !code
+      lambda: Λ
         ruby:    'proc { |text| "#{text}{{planet}} => |planet|#{text}" }'
         perl:    'sub { $_[0] . "{{planet}} => |planet|" . $_[0] }'
         js:      'function(txt) { return txt + "{{planet}} => |planet|" + txt }'
@@ -124,7 +129,7 @@ tests:
   - name: Section - Multiple Calls
     desc: Lambdas used for sections should not be cached.
     data:
-      lambda: !code
+      lambda: Λ
         ruby:    'proc { |text| "__#{text}__" }'
         perl:    'sub { "__" . $_[0] . "__" }'
         js:      'function(txt) { return "__" + txt + "__" }'
@@ -138,7 +143,7 @@ tests:
     desc: Lambdas used for inverted sections should be considered truthy.
     data:
       static: 'static'
-      lambda: !code
+      lambda: Λ
         ruby:    'proc { |text| false }'
         perl:    'sub { 0 }'
         js:      'function(txt) { return false }'

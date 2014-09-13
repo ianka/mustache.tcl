@@ -9,10 +9,15 @@
 ##
 
 
+## Require lambda package from tcllib.
+## If you don't need mustache to support lambdas, you can leave this out.
+package require lambda
+
+
 namespace eval ::mustache {
 	## Helpers.
 	set HtmlEscapeMap [dict create "&" "&amp;" "<" "&lt;" ">" "&gt;" "\"" "&quot;" "'" "&#39;"]
-	set LambdaPrefix "!code"
+	set LambdaPrefix "Λtcl"
 
 	## Build search tree.
 	proc searchtree {frame} {
@@ -150,9 +155,16 @@ namespace eval ::mustache {
 							## Get value.
 							set value [dict get $context {*}$thisframe {*}$parameter]
 
-							## Treat doubles as numbers.
-							if {[string is double -strict $value]} {
-								set value [expr $value]
+							## Check for lambda.
+							if {![catch {dict get $value $::mustache::LambdaPrefix} body]} {
+								## Lambda.
+								set value [eval [::lambda {} $body]]
+								foreach {dummy1 value dummy2 dummy3} [::mustache::compile $value $context $toplevel $frame $standalone $skippartials $indent] {}
+							} {
+								## Value. Treat doubles as numbers.
+								if {[string is double -strict $value]} {
+									set value [expr $value]
+								}
 							}
 
 							## Substitute in output, escape if neccessary.
@@ -164,7 +176,7 @@ namespace eval ::mustache {
 
 							## Break.
 							break
-						}
+						}	
 					}
 				}
 				iterator {
