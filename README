@@ -1,0 +1,75 @@
+OVERVIEW
+========
+mustache.tcl is a Tcl-only implementation of the mustache templating language. 
+
+This package supports the v1.1.2 mustache spec which can be found at 
+https://github.com/mustache/spec/tree/master/specs, lambdas are supported, too.
+
+See https://github.com/mustache for further information on mustache.
+
+
+INVOCATION
+==========
+There is only a single command
+
+	::mustache::mustache template data
+
+which takes a template and a data dict and returns the rendered text.
+
+	set text {
+		<h1>Dear {{firstname}},{{! This is a comment}}</h1>
+		<p>Best wishes to your {{age}} birthday.</p>
+		<h2>{{sender}}</h2>
+	}
+	set data [dict create firstname "Fred" age "40th" sender "Greg & Tina"]
+
+	puts [::mustache::mustache $text $data]
+
+Partials are supplied from variables in the current scope.
+The lambda prefix can be changed globally, should this ever be needed, by
+doing
+
+	set ::mustache::LambdaPrefix "Λtcl"
+
+See examples.tcl.
+
+
+TESTSUITE
+=========
+The package passes all the mandatory tests from the testsuite without
+modifications. You can update the yaml files in the tests directory to
+check against a newer version of the mustache spec. Call
+
+	tests.tcl
+
+to run the testsuite. A single argument denoting the test number to run
+is also supported
+
+Lambdas
+-------
+The ~lambdas.yml file from the spec had to be tweaked, as there hadn't
+been any Tcl lambdas in there. Second, Tcl doesn't support explicit
+typing, so tcllib's yaml suite doesn't support the !code modifier. Instead
+a lambda has to be marked with Λtcl (that's an uppercase lambda in front of
+the "tcl"), which acts as a magic string making mustache.tcl detecting a
+lambda.
+
+
+BUGS
+====
+Partials indentation still seems to be hairy, though the test suite isn't
+affected. We need more testcases! If you are using mustache for e.g. HTML
+templates and you aren't fussy about pretty-printing, this shouldn't bother
+you.
+
+If you found another bug or have more testcases, please contact me.
+
+
+AUTHOR AND LICENSE
+==================
+Jan Kandziora <jjj@gmx.de>
+(C)2014 by Jan Kandziora <jjj@gmx.de>
+
+You may use, copy, distibute, and modify this software under the terms of
+the GNU General Public License(GPL), Version 2. See file COPYING for details.
+
