@@ -130,7 +130,7 @@ namespace eval ::mustache {
 				## Remove blanks and newline from head end and tail start for standalone tags.
 				set head $newhead
 				set tail $newtail
-  		}
+			}
 
 			## Append head to output.
 			append output $head
@@ -157,11 +157,11 @@ namespace eval ::mustache {
 							if {![catch {dict get $value $::mustache::LambdaPrefix} body]} {
 								## Lambda.
 								foreach {dummy1 value dummy2 dummy3} [::mustache::compile [eval [::lambda {} $body]] $context $toplevel $frame $standalone $skippartials $indent] {}
-							} {
-								## Value. Treat doubles as numbers.
-								if {[string is double -strict $value]} {
+
+								## Check for double.
+							} elseif {[string is double -strict $value]} {
+									## Treat doubles as numbers.
 									set value [expr $value]
-								}
 							}
 
 							## Substitute in output, escape if neccessary.
@@ -204,75 +204,72 @@ namespace eval ::mustache {
 						if {![catch {dict get $context {*}$thisframe [lindex $parameter end]} values]} {
 							## Context ok.
 							set found 1
+
 							## Skip silently if the values is boolean false or an empty list.
 							if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone 1] {}
-							} else {
 								## Check for values is boolean true
-								if {([string is boolean -strict $values] && $values)} {
-									## Render section in current frame.
-									foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $frame $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+							} elseif {([string is boolean -strict $values] && $values)} {
+								## Render section in current frame.
+								foreach {dummy1 sectionoutput tail dummy2} [::mustache::compile $tail $context $toplevel $frame $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+								append output $sectionoutput
+
+								## Check for lambda.
+							} elseif {![catch {dict get $values $::mustache::LambdaPrefix} body]} {
+								## Lambda. Get section input.
+								foreach {sectioninput dummy1 tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+
+								## Evaluate lambda with section input.
+								foreach {dummy1 value dummy2 dummy3} [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $frame $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+
+								## Substitute in output, escape.
+								append output $value
+
+								## Check for simple list vs. list of lists.
+								## (section value is a list of key/value pairs)
+								## WARNING: keys with whitespace in it are not allowed to
+								## make it possible to detect list of lists.
+							} elseif {[llength [lindex $values 0]] == 1} {
+								## Simple list.
+								## Replace variant context by a single instance of it
+								set newcontext $context
+								dict set newcontext {*}$newframe $values
+
+								## Call recursive, get new tail.
+								foreach {dummy sectionoutput newtail iterator} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+								## Check if iterator has been passed in the section.
+								if {!$iterator} {
+									## No. Section output is ok.
 									append output $sectionoutput
 								} else {
-									## Check for lambda.
-									if {![catch {dict get $values $::mustache::LambdaPrefix} body]} {
-										## Lambda. Get section input.
-										foreach {sectioninput dummy1 tail dummy2} [::mustache::compile $tail $context $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+									## Yes. Throw away last result, try again with iterator context.
+									foreach value $values {
+										## Replace variant context by a single instance of it.
+										set newcontext $context
+										dict set newcontext {*}$newframe $value
 
-										## Evaluate lambda with section input.
-										foreach {dummy1 value dummy2 dummy3} [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $frame $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+										## Call recursive, get new tail.
+										foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+										append output $sectionoutput
+									}
+								}
 
-										## Substitute in output, escape.
-										append output $value
-									} else {
-										## Check for simple list vs. list of lists.
-										## (section value is a list of key/value pairs)
-										## WARNING: keys with whitespace in it are not allowed to
-										## make it possible to detect list of lists.
-										if {[llength [lindex $values 0]] == 1} {
-											## Simple list.
-											## Replace variant context by a single instance of it
-											set newcontext $context
-											dict set newcontext {*}$newframe $values
+								## Update tail to skip the section in this level.
+								set tail $newtail
+							} else {
+								## Otherwise loop over list.
+								foreach value $values {
+									## Replace variant context by a single instance of it.
+									set newcontext $context
+									dict set newcontext {*}$newframe $value
 
-											## Call recursive, get new tail.
-											foreach {dummy sectionoutput newtail iterator} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
-											## Check if iterator has been passed in the section.
-											if {!$iterator} {
-												## No. Section output is ok.
-												append output $sectionoutput
-											} else {
-												## Yes. Throw away last result, try again with iterator context.
-												foreach value $values {
-													## Replace variant context by a single instance of it.
-													set newcontext $context
-													dict set newcontext {*}$newframe $value
+									## Call recursive, get new tail.
+									foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
+									append output $sectionoutput
+								}
 
-													## Call recursive, get new tail.
-													foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
-													append output $sectionoutput
-												}
-											}
-
-											## Update tail to skip the section in this level.
-											set tail $newtail
-										} else {
-											## Otherwise loop over list.
-											foreach value $values {
-												## Replace variant context by a single instance of it.
-												set newcontext $context
-												dict set newcontext {*}$newframe $value
-
-												## Call recursive, get new tail.
-												foreach {dummy1 sectionoutput newtail dummy2} [::mustache::compile $tail $newcontext $toplevel $newframe $standalone $skippartials $indent $opendelimiter $closedelimiter] {}
-												append output $sectionoutput
-											}
-
-											## Update tail to skip the section in this level.
-											set tail $newtail
-										}
-									}	
-								}	
+								## Update tail to skip the section in this level.
+								set tail $newtail
 							}
 
 							## Break
