@@ -144,7 +144,7 @@ namespace eval ::mustache {
 					set parameter [split $parameter .]
 
 					## Check search tree.
-					foreach thisframe [::mustache::searchtree $frame ] {
+					foreach thisframe [::mustache::searchtree $frame] {
 						## Check whether the parameter base is defined in this frame.
 						if {[dict exists $context {*}$thisframe [lindex $parameter 0]]} {
 							## Yes. Break if the full key doesn't exist.
@@ -197,13 +197,13 @@ namespace eval ::mustache {
 					set parameter [split $parameter .]
 
 					## Start with new frame.
-					set newframe [concat $frame {*}$parameter]
-					set thisframe $newframe
-					while true {
+					set found 0
+					set newframe [concat $frame $parameter]
+					foreach thisframe [::mustache::searchtree [concat $frame [lrange $parameter 0 end-1]]] {
 						## Check for existing key.
-						if {[dict exists $context {*}$thisframe]} {
-							set values [dict get $context {*}$thisframe]
-
+						if {![catch {dict get $context {*}$thisframe [lindex $parameter end]} values]} {
+							## Context ok.
+							set found 1
 							## Skip silently if the values is boolean false or an empty list.
 							if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone 1] {}
@@ -274,21 +274,15 @@ namespace eval ::mustache {
 									}	
 								}	
 							}
+
 							## Break
 							break
-						} else {
-							## Check parent frame.
-							set thisframe [lrange $thisframe 0 end-1]
+						}	
+					}
 
-							## Break if we are already in top frame.
-							if {$thisframe eq {}} {
-								## Key nonexistant. Skip silently over the section.
-								foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone 1] {}
-						
-								## Break.
-								break
-							}
-						}
+					## Skip silently over the section when no key was found.
+					if {!$found} {
+						foreach {dummy1 dummy2 tail dummy3} [::mustache::compile $tail $context $toplevel $newframe $standalone 1] {}
 					}
 				}
 				startInvertedSection {

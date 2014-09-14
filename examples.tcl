@@ -45,8 +45,10 @@ sep
 ## Sometimes it's required to use different tag delimiters. These can
 ## be switched everywhere in the template. Tag names are trimmed for
 ## spaces, which comes in handy here.
-set text {{{=<% %>=}}    {{<% name %>}} is awesome.
-<%={{ }}=%>    {{name}} is still awesome.}
+set text {{{=<% %>=}}
+{{<% name %>}} is awesome.
+<%={{ }}=%>
+{{name}} is still awesome.}
 set data [dict create name "Fred"]
 
 puts [::mustache::mustache $text $data]
@@ -69,8 +71,10 @@ sep
 set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
-{{#people}}	<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
-{{/people}}</table>}
+{{#people}}
+	<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
+{{/people}}
+</table>}
 set data [dict create \
 	phone "unknown" \
 	people [list \
@@ -89,8 +93,16 @@ sep
 set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
-{{#people}}	<tr><td>{{name}}</td><td>{{firstname}}</td><td><ul>{{#phonenumbers}}<li>{{type}}: {{phone}}</li>{{/phonenumbers}}{{^phonenumbers}}<li>has no phone!</li>{{/phonenumbers}}</ul></td></tr>
-{{/people}}</table>}
+{{#people}}
+	<tr><td>{{name}}</td><td>{{firstname}}</td>
+		<td><ul>{{#phonenumbers}}
+			<li>{{type}}: {{phone}}</li>{{/phonenumbers}}
+		{{^phonenumbers}}
+			<li>has no phone!</li>{{/phonenumbers}}
+		</ul></td>
+	</tr>
+{{/people}}
+</table>}
 set data {
 	phone "missing!"
 	people {
@@ -108,15 +120,28 @@ sep
 ## by creating a partial from it. The context is automatically applied. Partial
 ## names are mapped to variables in the current level.
 proc partialexample {} {
-	set linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{>phonepartial}}</td></tr>}
-	set phonepartial {<ul>{{#phonenumbers}}<li>{{type}}: {{phone}}</li>{{/phonenumbers}}{{^phonenumbers}}<li>has no phone!</li>{{/phonenumbers}}</ul>}
+	set linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{>phonepartial}}</td>
+</tr>
+}
+	set phonepartial {
+<ul>
+{{#phonenumbers}}
+	<li>{{type}}: {{phone}}</li>
+{{/phonenumbers}}
+{{^phonenumbers}}
+	<li>has no phone!</li>
+{{/phonenumbers}}</ul>}
 	set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
-{{#staff}}	{{>linepartial}}
-{{/staff}}	<tr><td colspan="3">Below are customers!</td></tr>
-{{#customers}}	{{>linepartial}}
-{{/customers}}</table>
+{{#staff}}
+	{{>linepartial}}
+{{/staff}}
+	<tr><td colspan="3">Below are customers!</td></tr>
+{{#customers}}
+	{{>linepartial}}
+{{/customers}}
+</table>
 }
 	set data {
 		phone "missing!"
@@ -139,25 +164,32 @@ partialexample
 
 
 ## Instead of lists, sections can also contain a lambda which is passed the
-## whole verbatim content of the section.
-set ::even 0
-proc evenodd {part values frame} {
-	set ::even [expr 1-$::even]
-	lindex [split $part |] $::even
-}
-
+## whole verbatim content of the section. If you don't need the section content
+## for the lambda, use it as a simple substitution.
 set text {<h1>Addressbook</h1>
+{{#lineclass}}white green{{/lineclass}}
+{{#table}}
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
-{{#people}}	<tr class="{{#lineclass}}white|green{{/lineclass}}"><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
-{{/people}}</table>}
+{{#people}}	<tr class="{{#lineclass}}white green blue{{/lineclass}}"><th>{{oddcounter}}</th><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
+{{/people}}</table>
+{{/table}}}
 set data [dict create \
 	phone "unknown" \
-	lineclass evenodd \
-	people [list \
-		[dict create name "Hanson" firstname "Fred" phone 555-123] \
-		[dict create name "Miller" firstname "Karen"] \
-		[dict create name "DeMarco" firstname "Greg" phone 129-182] \
+	oddcounter {Λtcl {incr ::oddcounter 1 ; string repeat I $::oddcounter}} \
+	lineclass {Λtcl {return "bar"}} \
+	table [list  \
+		lineclass {Λtcl {
+			incr ::lineclass 0
+			set result [lindex $arg $::lineclass]
+			set ::lineclass [expr {($::lineclass+1)%[llength $arg]}]
+			return $result
+		}} \
+		people [list \
+			[dict create name "Hanson" firstname "Fred" phone 555-123] \
+			[dict create name "Miller" firstname "Karen" lineclass {Λtcl {return "foo"}}] \
+			[dict create name "DeMarco" firstname "Greg" phone 129-182] \
+		] \
 	] \
 ]
 
