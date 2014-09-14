@@ -165,14 +165,13 @@ partialexample
 
 ## Instead of lists, sections can also contain a lambda which is passed the
 ## whole verbatim content of the section. If you don't need the section content
-## for the lambda, use it as a simple substitution.
+## for the lambda, use it as a simple substitution. Note the lambda limit.
 set text {<h1>Addressbook</h1>
-{{#lineclass}}white green{{/lineclass}}
 {{#table}}
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
-{{#people}}	<tr class="{{#lineclass}}white green blue{{/lineclass}}"><th>{{oddcounter}}</th><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
-{{/people}}</table>
+{{#unsafe}}{{#people}}	<tr class="{{#lineclass}}white green blue{{/lineclass}}"><th>{{oddcounter}}</th><td>{{name}}</td><td>{{firstname}}</td><td>{{phone}}</td></tr>
+{{/people}}{{/unsafe}}</table>
 {{/table}}}
 set data [dict create \
 	phone "unknown" \
@@ -185,10 +184,14 @@ set data [dict create \
 			set ::lineclass [expr {($::lineclass+1)%[llength $arg]}]
 			return $result
 		}} \
-		people [list \
-			[dict create name "Hanson" firstname "Fred" phone 555-123] \
-			[dict create name "Miller" firstname "Karen" lineclass {Λtcl {return "foo"}}] \
-			[dict create name "DeMarco" firstname "Greg" phone 129-182] \
+		oddcounter {Λtcl {incr ::oddcounter 1 ; string repeat X $::oddcounter}} \
+		unsafe [list \
+			λtcl false \
+			people [list \
+				[dict create name "Hanson" firstname "Fred" phone 555-123] \
+				[dict create name "Miller" firstname "Karen" phone {Λtcl {return "foo"}}] \
+				[dict create name "DeMarco" firstname "Greg" phone 129-182] \
+			] \
 		] \
 	] \
 ]
