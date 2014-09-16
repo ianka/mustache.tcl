@@ -21,7 +21,7 @@ overview: |
   and define the needed lambdas outside. Or with finer sectioning, at the
   programmers choice.
 tests:
-  - name: Values - Limited
+  - name: Unsafe - Values
     desc: Lambdas inside unsafe section should be replaced by safe values.
     data:
       userdata: 'Sure I am'
@@ -33,7 +33,7 @@ tests:
     template: "Are you nice? - {{#unsafe}}{{userdata}}, {{name}}{{/unsafe}}!"
     expected: "Are you nice? - Sure I am, mindful programmer!"
 
-  - name: Section - Limited
+  - name: Unsafe - Section
     desc: Lambda section inside unsafe section should be replaced by a safe values.
     data:
       safelambda: 'Λtcl {expr [join $arg *]}'
@@ -43,3 +43,25 @@ tests:
     template: "6! == {{#unsafe}}{{#userdata}}1 2 3 4 5 6{{/userdata}}{{#safelambda}}1 2 3 4 5 6{{/safelambda}}{{/unsafe}}"
     expected: "6! == 720"
 
+  - name: Unsafe - Iterator Section
+    desc: Lambda unsafe marker has to be evaluated for iterator sections.
+    data:
+      unsafe:
+        λtcl: false
+        userdata: a b Λtcl {return "I do evil things"} c
+    template: "{{#unsafe}}{{#userdata}}{{.}}|{{/userdata}}{{/unsafe}}"
+    expected: "a|b|Λtcl|return &quot;I do evil things&quot;|c|"
+
+  - name: Unsafe - Iterator List Valid
+    desc: Remove unsafe marker from valid iterator list values.
+    data:
+      unsafe: λtcl a b c
+    template: "{{#unsafe}}{{.}}|{{/unsafe}}"
+    expected: "a|b|c|"
+
+  - name: Unsafe - Iterator List Invalid
+    desc: Don't evaluate lambdas in unsafe marked iterator contexts.
+    data:
+      unsafe: λtcl a b Λtcl {return "I do evil things"} c d
+    template: "{{#unsafe}}{{.}}|{{/unsafe}}"
+    expected: "a|b|Λtcl|return &quot;I do evil things&quot;|c|d|"

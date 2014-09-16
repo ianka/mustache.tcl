@@ -224,9 +224,10 @@ namespace eval ::mustache {
 
 								## Check for lambda.
 							} elseif {![catch {dict get $values $::mustache::LambdaPrefix} body]} {
-								## Lambda. Check for limit.
-								if {($lambdalimit ne {}) \
-									&& ([lrange $thisframe 0 [llength $lambdalimit]-1] eq $lambdalimit)} {
+								## Check for lambda unsafe marker or inherited limit.
+								if {([string first $::mustache::LambdaUnsafe $values] == 0)
+									|| (($lambdalimit ne {})
+										&& ([lrange $thisframe 0 [llength $lambdalimit]-1] eq $lambdalimit))} {
 									## Revoke found notice, continue in search tree.
 									set found 0
 									continue
@@ -246,11 +247,17 @@ namespace eval ::mustache {
 								## WARNING: keys with whitespace in it are not allowed to
 								## make it possible to detect list of lists.
 							} elseif {[llength [lindex $values 0]] == 1} {
+								## Set default lambda limit and iterator values on current context.
+								set newlambdalimit $lambdalimit
+								set iteratorvalues $values
+
 								## Simple list. Check for lambda unsafe marker.
 								if {[string first $::mustache::LambdaUnsafe $values] == 0} {
+									## Found. Set limit.
 									set newlambdalimit $newframe
-								} else {
-									set newlambdalimit $lambdalimit
+
+									## Remove lambda unsafe marker and following whitespace from iterator values list.
+									regsub "^$::mustache::LambdaUnsafe\[\[:blank:\]\]" $values {} iteratorvalues
 								}
 
 								## Replace variant context by a single instance of it
@@ -266,13 +273,13 @@ namespace eval ::mustache {
 									append output $sectionoutput
 								} else {
 									## Yes. Throw away last result, try again with iterator context.
-									foreach value $values {
+									foreach value $iteratorvalues {
 										## Replace variant context by a single instance of it.
 										set newcontext $context
 										dict set newcontext {*}$newframe $value
 
 										## Call recursive, get new tail.
-										lassign [::mustache::compile $tail $newcontext $toplevel $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
+										lassign [::mustache::compile $tail $newcontext $toplevel $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
 										append output $sectionoutput
 									}
 								}
