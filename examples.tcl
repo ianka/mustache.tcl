@@ -120,27 +120,27 @@ sep
 ## by creating a partial from it. The context is automatically applied. Partial
 ## names are mapped to variables in the current level.
 proc partialexample {} {
-	set linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{>phonepartial}}</td>
-</tr>
+	set linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{>phonepartial}}</td></tr>
 }
 	set phonepartial {
-<ul>
-{{#phonenumbers}}
-	<li>{{type}}: {{phone}}</li>
-{{/phonenumbers}}
-{{^phonenumbers}}
-	<li>has no phone!</li>
-{{/phonenumbers}}</ul>}
+	<ul>
+	{{#phonenumbers}}
+		<li>{{type}}: {{phone}}</li>
+	{{/phonenumbers}}
+	{{^phonenumbers}}
+		<li>has no phone!</li>
+	{{/phonenumbers}}
+	</ul>}
 	set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
-{{#staff}}
+	{{#staff}}
 	{{>linepartial}}
-{{/staff}}
+	{{/staff}}
 	<tr><td colspan="3">Below are customers!</td></tr>
-{{#customers}}
+	{{#customers}}
 	{{>linepartial}}
-{{/customers}}
+	{{/customers}}
 </table>
 }
 	set data {
@@ -165,7 +165,7 @@ partialexample
 
 ## Instead of lists, sections can also contain a lambda which is passed the
 ## whole verbatim content of the section. If you don't need the section content
-## for the lambda, use it as a simple substitution. Note the lambda limit.
+## for the lambda, use it as a simple substitution. Note the lambda unsafe section.
 set text {<h1>Addressbook</h1>
 {{#table}}
 <table>
