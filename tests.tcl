@@ -56,10 +56,13 @@ proc testFile {name} {
 			incr ::passed
 		} else {
 			puts "[format %3d $::counter]: \[failed\] [dict get $test name] ([dict get $test desc])"
-			puts "Template: [dict get $test template]"
+			puts "Template: \"[string map {" " "."} [dict get $test template]]\""
 			puts "Data: [dict get $test data]"
-			puts "Expected: \"[string map {" " "_"} [dict get $test expected]]\""
-			puts "Result: \"[string map {" " "_"} $result]\""
+			if {[dict exists $test partials]} {
+				puts "Partials: [dict get $test partials]"
+			}
+			puts "Expected: \"[string map {" " "."} [dict get $test expected]]\""
+			puts "Result: \"[string map {" " "."} $result]\""
 		}	
 		
 	}
