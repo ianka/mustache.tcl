@@ -126,11 +126,13 @@ namespace eval ::mustache {
 			## If still standalone tag:
 			if {$standalone} {
 				## Set indent to use for partials.
-				set partialsindent $indent[regsub {.*?([[:blank:]]*)$} $head {\1}]
+				set partialsindent [regsub {.*?([[:blank:]]*)$} $head {\1}]
 
 				## Remove blanks and newline from head end and tail start for standalone tags.
 				set head $newhead
 				set tail $newtail
+			} else {
+				set partialsindent {}
 			}
 
 			## Append head to output.
@@ -353,7 +355,7 @@ namespace eval ::mustache {
 						## Compile a partial from a variable.
 						upvar #$toplevel $parameter partial
 						if {[info exists partial]} {
-							lassign [::mustache::compile $partial $context $toplevel $frame $lambdalimit $standalone 0 $partialsindent] dummy sectionoutput sectioninput
+							lassign [::mustache::compile $partial $context $toplevel $frame $lambdalimit $standalone 0 $partialsindent] dummy sectionoutput
 							append output $sectionoutput
 						}
 					}

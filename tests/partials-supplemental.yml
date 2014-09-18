@@ -1,0 +1,31 @@
+overview: |
+  Additional indentation tests for partials.
+tests:
+  - name: Indentation - Nesting
+    desc: Nested partials should concat indentation.
+    data: { }
+    partials:
+      b: ' {{> d }}'
+      d: 'D!'
+    template: ' {{> b }}'
+    expected: '  D!'
+
+  - name: Indentation - Multiple Nesting
+    desc: Multiple nesting has to work.
+    data: { }
+    partials:
+      a: ' {{> b }}'
+      b: ' {{> d }}'
+      d: 'D!'
+    template: ' {{> a }}'
+    expected: '   D!'
+
+  - name: Indentation - Inline
+    desc: Partials not at the beginning of a line should have no indentation.
+    data: { }
+    partials:
+      c: ' {{> d }}{{> d }}'
+      d: 'D!'
+    template: ' {{> c }}'
+    expected: '  D!D!'
+);
