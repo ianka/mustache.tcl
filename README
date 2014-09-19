@@ -71,12 +71,8 @@ sections feature unique to mustache.tcl.
 
 BUGS
 ====
-Partials indentation still seems to be hairy, though the test suite isn't
-affected. We need more testcases! If you are using mustache for e.g. HTML
-templates and you aren't fussy about pretty-printing, this shouldn't bother
-you.
-
-If you found another bug or have more testcases, please contact me.
+Partials indentation was buggy <= v1.2.2.2, now it's fixed, I think. If you
+found another bug or have more testcases, please contact me.
 
 
 AUTHOR AND LICENSE
