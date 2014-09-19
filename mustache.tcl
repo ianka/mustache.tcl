@@ -33,7 +33,6 @@ namespace eval ::mustache {
 	## Main template compiler.
 	proc compile {tail context {toplevel 0} {frame {}} {lambdalimit {}} {standalone 1} {skippartials 0} {indent {}} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
 		set iteratorpassed 0
-		set partialsindent $indent
 
 		## Add indent to first output line.
 		append output $indent
@@ -371,8 +370,8 @@ namespace eval ::mustache {
 
 
 	## Main proc.
-	proc mustache {template values {frame {}}} {
-		lindex [::mustache::compile $template $values [expr [info level]-1] $frame] 1
+	proc mustache {template values} {
+		lindex [::mustache::compile $template $values [expr [info level]-1]] 1
 	}
 }
 
