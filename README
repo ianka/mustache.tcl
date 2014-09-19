@@ -71,7 +71,7 @@ sections feature unique to mustache.tcl.
 
 BUGS
 ====
-Partials indentation was buggy <= v1.2.2.2, now it's fixed, I think. If you
+Partials indentation was buggy <= v1.1.2.2, now it's fixed, I think. If you
 found another bug or have more testcases, please contact me.
 
 
