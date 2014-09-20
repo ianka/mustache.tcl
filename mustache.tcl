@@ -258,7 +258,7 @@ namespace eval ::mustache {
 									set newlambdalimit $newframe
 
 									## Remove lambda unsafe marker and following whitespace from iterator values list.
-									regsub "^$::mustache::LambdaUnsafe\[\[:blank:\]\]" $values {} iteratorvalues
+									regsub "^$::mustache::LambdaUnsafe\[\[:blank:\]\]*?" $values {} iteratorvalues
 								}
 
 								## Replace variant context by a single instance of it
@@ -323,12 +323,17 @@ namespace eval ::mustache {
 						## Key exists.
 						set values [dict get $context {*}$newframe]
 
-						## Skip silently if the values is *not* false or an empty list.
-						if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
+						## Skip silently if the values is *not* false
+						## or an empty list or solely the lambda unsafe marker.
+						if {([string is boolean -strict $values] && !$values)
+							|| ($values eq {})
+							|| ($values eq $::mustache::LambdaUnsafe)} {
 							## Key is false or empty list. Render once. 
 							## Call recursive, get new tail.
 							lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
 							append output $sectionoutput
+
+							## Valid list. Check for lambda unsafe marker.
 						} else {
 							## Key is a valid list. Skip silently over the section.
 							lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
@@ -383,7 +388,7 @@ namespace eval ::mustache {
 
 
 	## Main proc.
-	proc mustache {template values args} {
+	proc mustache {template context args} {
 		## Check libraries.
 		set libraries {}
 		foreach lib $args {
@@ -393,7 +398,7 @@ namespace eval ::mustache {
 			}
 		}
 		## Compile template.
-		lindex [::mustache::compile $template $values [expr [info level]-1] $libraries] 1
+		lindex [::mustache::compile $template $context [expr [info level]-1] $libraries] 1
 	}
 }
 

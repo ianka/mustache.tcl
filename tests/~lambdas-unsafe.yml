@@ -59,6 +59,20 @@ tests:
     template: "{{#unsafe}}{{.}}|{{/unsafe}}"
     expected: "a|b|c|"
 
+  - name: Unsafe - Iterator List Empty
+    desc: Don't render iterator sections which alone content is the unsafe marker.
+    data:
+      unsafe: λtcl
+    template: "{{#unsafe}}{{.}}|{{/unsafe}}"
+    expected: ""
+
+  - name: Unsafe - Iterator List Empty, Inverted Section
+    desc: Take iterator sections which alone content is the unsafe marker as empty.
+    data:
+      unsafe: λtcl
+    template: "{{^unsafe}}empty{{/unsafe}}"
+    expected: "empty"
+
   - name: Unsafe - Iterator List Invalid
     desc: Don't evaluate lambdas in unsafe marked iterator contexts.
     data:
