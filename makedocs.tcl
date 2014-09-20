@@ -9,6 +9,7 @@ set data {
 [keywords "template processing" html]
 [require Tcl 8.5]
 [require lambda]
+[require mustache [opt 1.1.2]]
 
 [description]
 This package is a pure-Tcl implementation of the mustache templating engine spec
