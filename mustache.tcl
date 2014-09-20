@@ -31,7 +31,7 @@ namespace eval ::mustache {
 	}
 
 	## Main template compiler.
-	proc compile {tail context {toplevel 0} {frame {}} {lambdalimit {}} {standalone 1} {skippartials 0} {indent {}} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
+	proc compile {tail context {toplevel 0} {libraries {}} {frame {}} {lambdalimit {}} {standalone 1} {skippartials 0} {indent {}} {opendelimiter "\{\{"} {closedelimiter "\}\}"} {input {}} {output {}}} {
 		set iteratorpassed 0
 
 		## Add indent to first output line.
@@ -165,7 +165,7 @@ namespace eval ::mustache {
 								}	
 
 								## No limit. Get actual value from lambda.
-								lassign [::mustache::compile [eval [::lambda {} $body]] $context $toplevel $frame $lambdalimit $standalone $skippartials $indent] dummy value
+								lassign [::mustache::compile [eval [::lambda {} $body]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent] dummy value
 
 								## Check for double.
 							} elseif {[string is double -strict $value]} {
@@ -216,11 +216,11 @@ namespace eval ::mustache {
 
 							## Skip silently if the values is boolean false or an empty list.
 							if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
-								lassign [::mustache::compile $tail $context $toplevel $newframe $lambdalimit $standalone 1] tail
+								lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
 								## Check for values is boolean true
 							} elseif {([string is boolean -strict $values] && $values)} {
 								## Render section in current frame.
-								lassign [::mustache::compile $tail $context $toplevel $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
+								lassign [::mustache::compile $tail $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
 								append output $sectionoutput
 
 								## Check for lambda.
@@ -235,10 +235,10 @@ namespace eval ::mustache {
 								}	
 
 								## No limit. Get section input.
-								lassign [::mustache::compile $tail $context $toplevel $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail dummy sectioninput
+								lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail dummy sectioninput
 
 								## Evaluate lambda with section input.
-								lassign [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] dummy value
+								lassign [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] dummy value
 
 								## Substitute in output, escape.
 								append output $value
@@ -266,7 +266,7 @@ namespace eval ::mustache {
 								dict set newcontext {*}$newframe $values
 
 								## Call recursive, get new tail.
-								lassign [::mustache::compile $tail $newcontext $toplevel $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput dummy iterator
+								lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput dummy iterator
 
 								## Check if iterator has been passed in the section.
 								if {!$iterator} {
@@ -280,7 +280,7 @@ namespace eval ::mustache {
 										dict set newcontext {*}$newframe $value
 
 										## Call recursive, get new tail.
-										lassign [::mustache::compile $tail $newcontext $toplevel $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
+										lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
 										append output $sectionoutput
 									}
 								}
@@ -295,7 +295,7 @@ namespace eval ::mustache {
 									dict set newcontext {*}$newframe $value
 
 									## Call recursive, get new tail.
-									lassign [::mustache::compile $tail $newcontext $toplevel $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
+									lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
 									append output $sectionoutput
 								}
 
@@ -310,7 +310,7 @@ namespace eval ::mustache {
 
 					## Skip silently over the section when no key was found.
 					if {!$found} {
-						lassign [::mustache::compile $tail $context $toplevel $newframe $lambdalimit $standalone 1] tail
+						lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
 					}
 				}
 				startInvertedSection {
@@ -327,16 +327,16 @@ namespace eval ::mustache {
 						if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
 							## Key is false or empty list. Render once. 
 							## Call recursive, get new tail.
-							lassign [::mustache::compile $tail $context $toplevel $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
+							lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
 							append output $sectionoutput
 						} else {
 							## Key is a valid list. Skip silently over the section.
-							lassign [::mustache::compile $tail $context $toplevel $newframe $lambdalimit $standalone 1] tail
+							lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
 						}
 					} else {
 						## Key doesn't exist. Render once. 
 						## Call recursive, get new tail.
-						lassign [::mustache::compile $tail $context $toplevel $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
+						lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
 						append output $sectionoutput
 					}
 				}
@@ -351,11 +351,24 @@ namespace eval ::mustache {
 				includePartial {
 					## Skip partials when compiling is done only for skipping over a section.
 					if {!$skippartials} {
-						## Compile a partial from a variable.
+						## Check for local variable.
 						upvar #$toplevel $parameter partial
 						if {[info exists partial]} {
-							lassign [::mustache::compile $partial $context $toplevel $frame $lambdalimit $standalone 0 $partialsindent] dummy sectionoutput
+							## Compile a partial from a variable.
+							lassign [::mustache::compile $partial $context $toplevel $libraries $frame $lambdalimit $standalone 0 $partialsindent] dummy sectionoutput
 							append output $sectionoutput
+						} else {
+							## Compile a partial from library.
+							foreach lib $libraries {
+								upvar #$toplevel $lib library
+								if {[dict exists $library $parameter]} {
+									lassign [::mustache::compile [dict get $library $parameter] $context $toplevel $libraries $frame $lambdalimit $standalone 0 $partialsindent] dummy sectionoutput
+									append output $sectionoutput
+
+									## Break.
+									break
+								}
+							}
 						}
 					}
 				}
@@ -370,8 +383,17 @@ namespace eval ::mustache {
 
 
 	## Main proc.
-	proc mustache {template values} {
-		lindex [::mustache::compile $template $values [expr [info level]-1]] 1
+	proc mustache {template values args} {
+		## Check libraries.
+		set libraries {}
+		foreach lib $args {
+			upvar $lib library
+			if {[info exists library]} {
+				lappend libraries $lib
+			}
+		}
+		## Compile template.
+		lindex [::mustache::compile $template $values [expr [info level]-1] $libraries] 1
 	}
 }
 

@@ -12,9 +12,9 @@ INVOCATION
 ==========
 There is only a single command
 
-	::mustache::mustache template data
+	::mustache::mustache template data ?libraryvar ...?
 
-which takes a template and a data dict and returns the rendered text.
+which takes a template and a context data dict and returns the rendered text.
 
 	set text {
 		<h1>Dear {{firstname}},{{! This is a comment}}</h1>
@@ -25,22 +25,38 @@ which takes a template and a data dict and returns the rendered text.
 
 	puts [::mustache::mustache $text $data]
 
-Partials are supplied from variables in the current scope.
-The lambda prefix can be changed globally, should this ever be needed, by
-doing
+Partials
+--------
+Partials are supplied from variables in the current scope. If no variable is
+found, the libraryvars are consulted. These are dict variables where the key
+is matched against the partial name.
 
-	set ::mustache::LambdaPrefix "Λtcl"
+Lambdas
+-------
+Lamdba use is straightforward. Just make a context value a list with "Λtcl"
+as first element to declare the next element as an executeable content.
 
+--- IMPORTANT NOTICE, SECURITY CONCERN ---
 To work around the limitation Tcl doesn't support explicit typing and thus,
 lambdas an inherently unsafe with user supplied content (and aside from
 the usual Tcl way of sandboxing anything unsafe), there is support for
 "unsafe" sections. These are ordinary sections with an "unsafe" marker on
 start of their context. Lambdas within those sections are always substituted
 from the context *outside* the section. This makes it safe to use programmer
-defined lambdas mixed with user content. The lambda unsafe marker can be
-changed globally, should this ever be needed, by doing
+defined lambdas mixed with user content.
+---
+
+The lambda prefix can be changed globally, should this ever be needed, by
+doing
+
+	set ::mustache::LambdaPrefix "Λtcl"
+
+The lambda unsafe marker can be changed globally, should this ever be needed,
+by doing
 
 	set ::mustache::LambdaUnsafe "λtcl"
+
+
 
 See examples.tcl.
 

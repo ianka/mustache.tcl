@@ -118,11 +118,11 @@ sep
 
 ## A useful template can be re-used several times in one or multiple templates
 ## by creating a partial from it. The context is automatically applied. Partial
-## names are mapped to variables in the current level.
-proc partialexample {} {
-	set linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{>phonepartial}}</td></tr>
-}
-	set phonepartial {
+## names are mapped to variables in the current level. If no such variable exists,
+## the library dict variables given on the mustache call are consulted in order of
+## writing.
+set partiallib {
+	phonepartial {
 	<ul>
 	{{#phonenumbers}}
 		<li>{{type}}: {{phone}}</li>
@@ -131,6 +131,12 @@ proc partialexample {} {
 		<li>has no phone!</li>
 	{{/phonenumbers}}
 	</ul>}
+	linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td>{{>phonepartial}}</td></tr>
+}}
+
+proc partialexample {} {
+	set linepartial {<tr><td>{{name}}</td><td>{{firstname}}</td><td class="phone">{{>phonepartial}}</td></tr>
+}
 	set text {<h1>Addressbook</h1>
 <table>
 	<tr><th>Name</th><th>Firstname</th><th>Phone</th></tr>
@@ -156,7 +162,7 @@ proc partialexample {} {
 		}
 	}
 
-	puts [::mustache::mustache $text $data]
+	puts [::mustache::mustache $text $data ::partiallib]
 	sep
 }
 
@@ -197,5 +203,4 @@ set data [dict create \
 ]
 
 puts [::mustache::mustache $text $data]
-
 
