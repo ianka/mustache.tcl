@@ -100,7 +100,7 @@ is removed for simple list contexts so it doesn't interfere with processing iter
 [para]
 [emph "Lambda-unsafe section"]
 [example_begin]
-set context {safelambda {Λtcl {expr [lb]djoin $arg *[rb]}} unsafe {
+set context {safelambda {Λtcl {expr [lb]join $arg *[rb]}} unsafe {
 	λtcl false userdata {Λtcl {return "I do evil things with your $arg"}}}}
 set template {{{#unsafe}}{{#userdata}}1 2 3 4 5 6{{/userdata}}|{{#safelambda}}1 2 3 4 5 6{{/safelambda}}{{/unsafe}}}
 ::mustache::mustache $template $context
