@@ -202,119 +202,141 @@ namespace eval ::mustache {
 					}
 				}
 				startSection {
-					## Split up the parameter in dotted sections.
-					set parameter [split $parameter .]
+					## Test for iterator section.
+					if {$parameter eq {.}} {
+						## Iterator section.
+						## Get values from current frame.
+						set values [dict get $context {*}$frame]
 
-					## Start with new frame.
-					set found 0
-					set newframe [concat $frame $parameter]
-					foreach thisframe [::mustache::searchtree [concat $frame [lrange $parameter 0 end-1]]] {
-						## Check for existing key.
-						if {![catch {dict get $context {*}$thisframe [lindex $parameter end]} values]} {
-							## Context ok.
-							set found 1
+						## Loop over outer list.
+						foreach value $values {
+							## Replace variant context by a single instance of it.
+							set newcontext $context
+							dict set newcontext {*}$frame $value
 
-							## Skip silently if the values is boolean false or an empty list.
-							if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
-								lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
-								## Check for values is boolean true
-							} elseif {([string is boolean -strict $values] && $values)} {
-								## Render section in current frame.
-								lassign [::mustache::compile $tail $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
-								append output $sectionoutput
+							## Call recursive, get new tail.
+							lassign [::mustache::compile $tail $newcontext $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
+							append output $sectionoutput
+						}
 
-								## Check for lambda.
-							} elseif {![catch {dict get $values $::mustache::LambdaPrefix} body]} {
-								## Check for lambda unsafe marker or inherited limit.
-								if {([string first $::mustache::LambdaUnsafe $values] == 0)
-									|| (($lambdalimit ne {})
-										&& ([lrange $thisframe 0 [llength $lambdalimit]-1] eq $lambdalimit))} {
-									## Revoke found notice, continue in search tree.
-									set found 0
-									continue
-								}	
+						## Update tail to skip the section in this level.
+						set tail $newtail
+					} else {
+						## Normal section.
+						## Split up the parameter into dotted sections.
+						set parameter [split $parameter .]
 
-								## No limit. Get section input.
-								lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail dummy sectioninput
+						## Start with new frame.
+						set found 0
+						set newframe [concat $frame $parameter]
+						foreach thisframe [::mustache::searchtree [concat $frame [lrange $parameter 0 end-1]]] {
+							## Check for existing key.
+							if {![catch {dict get $context {*}$thisframe [lindex $parameter end]} values]} {
+								## Context ok.
+								set found 1
 
-								## Evaluate lambda with section input.
-								lassign [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] dummy value
-
-								## Substitute in output, escape.
-								append output $value
-
-								## Check for simple list vs. list of lists.
-								## (section value is a list of key/value pairs)
-								## WARNING: keys with whitespace in it are not allowed to
-								## make it possible to detect list of lists.
-							} elseif {[llength [lindex $values 0]] == 1} {
-								## Set default lambda limit and iterator values on current context.
-								set newlambdalimit $lambdalimit
-								set iteratorvalues $values
-
-								## Simple list. Check for lambda unsafe marker.
-								if {[string first $::mustache::LambdaUnsafe $values] == 0} {
-									## Found. Set limit.
-									set newlambdalimit $newframe
-
-									## Remove lambda unsafe marker and following whitespace from iterator values list.
-									regsub "^$::mustache::LambdaUnsafe\[\[:blank:\]\]*?" $values {} iteratorvalues
-								}
-
-								## Replace variant context by a single instance of it
-								set newcontext $context
-								dict set newcontext {*}$newframe $values
-
-								## Call recursive, get new tail.
-								lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput dummy iterator
-
-								## Check if iterator has been passed in the section.
-								if {!$iterator} {
-									## No. Section output is ok.
+								## Skip silently if the values is boolean false or an empty list.
+								if {([string is boolean -strict $values] && !$values) || ($values eq {})} {
+									lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
+									## Check for values is boolean true
+								} elseif {([string is boolean -strict $values] && $values)} {
+									## Render section in current frame.
+									lassign [::mustache::compile $tail $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
 									append output $sectionoutput
+
+									## Check for lambda.
+								} elseif {![catch {dict get $values $::mustache::LambdaPrefix} body]} {
+									## Check for lambda unsafe marker or inherited limit.
+									if {([string first $::mustache::LambdaUnsafe $values] == 0)
+										|| (($lambdalimit ne {})
+											&& ([lrange $thisframe 0 [llength $lambdalimit]-1] eq $lambdalimit))} {
+										## Revoke found notice, continue in search tree.
+										set found 0
+										continue
+									}	
+
+									## No limit. Get section input.
+									lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail dummy sectioninput
+
+									## Evaluate lambda with section input.
+									lassign [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] dummy value
+
+									## Substitute in output, escape.
+									append output $value
+
+									## Check for simple list vs. list of lists.
+									## (section value is a list of key/value pairs)
+									## WARNING: keys with whitespace in it are not allowed to
+									## make it possible to detect list of lists.
+								} elseif {[llength [lindex $values 0]] == 1} {
+									## Set default lambda limit and iterator values on current context.
+									set newlambdalimit $lambdalimit
+									set iteratorvalues $values
+
+									## Simple list. Check for lambda unsafe marker.
+									if {[string first $::mustache::LambdaUnsafe $values] == 0} {
+										## Found. Set limit.
+										set newlambdalimit $newframe
+
+										## Remove lambda unsafe marker and following whitespace from iterator values list.
+										regsub "^$::mustache::LambdaUnsafe\[\[:blank:\]\]*?" $values {} iteratorvalues
+									}
+
+									## Replace variant context by a single instance of it
+									set newcontext $context
+									dict set newcontext {*}$newframe $values
+
+									## Call recursive, get new tail.
+									lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput dummy iterator
+
+									## Check if iterator has been passed in the section.
+									if {!$iterator} {
+										## No. Section output is ok.
+										append output $sectionoutput
+									} else {
+										## Yes. Throw away last result, try again with iterator context.
+										foreach value $iteratorvalues {
+											## Replace variant context by a single instance of it.
+											set newcontext $context
+											dict set newcontext {*}$newframe $value
+
+											## Call recursive, get new tail.
+											lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
+											append output $sectionoutput
+										}
+									}
+
+									## Update tail to skip the section in this level.
+									set tail $newtail
 								} else {
-									## Yes. Throw away last result, try again with iterator context.
-									foreach value $iteratorvalues {
+									## Otherwise loop over list.
+									foreach value $values {
 										## Replace variant context by a single instance of it.
 										set newcontext $context
 										dict set newcontext {*}$newframe $value
 
 										## Call recursive, get new tail.
-										lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $newlambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
+										lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
 										append output $sectionoutput
 									}
+
+									## Update tail to skip the section in this level.
+									set tail $newtail
 								}
 
-								## Update tail to skip the section in this level.
-								set tail $newtail
-							} else {
-								## Otherwise loop over list.
-								foreach value $values {
-									## Replace variant context by a single instance of it.
-									set newcontext $context
-									dict set newcontext {*}$newframe $value
+								## Break
+								break
+							}	
+						}
 
-									## Call recursive, get new tail.
-									lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
-									append output $sectionoutput
-								}
-
-								## Update tail to skip the section in this level.
-								set tail $newtail
-							}
-
-							## Break
-							break
-						}	
-					}
-
-					## Skip silently over the section when no key was found.
-					if {!$found} {
-						lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
+						## Skip silently over the section when no key was found.
+						if {!$found} {
+							lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
+						}
 					}
 				}
 				startInvertedSection {
-					## Split up the parameter in dotted sections.
+					## Split up the parameter into dotted sections.
 					set parameter [split $parameter .]
 
 					## Check for existing key.
@@ -346,12 +368,20 @@ namespace eval ::mustache {
 					}
 				}
 				endSection {
-					## Split up the parameter in dotted sections.
-					set parameter [split $parameter .]
-					## Break recursion if parameter matches innermost frame.
-					if {$parameter eq [lrange $frame end-[expr [llength $parameter]-1] end]} {
+					## Test for iterator section.
+					if {$parameter eq {.}} {
+						## Iterator section closed.
+						## Break recursion.
 						return [list $tail $output $input $iteratorpassed]
-					}
+					} else {
+						## Normal section closed.
+						## Split up the parameter into dotted sections.
+						set parameter [split $parameter .]
+						## Break recursion if parameter matches innermost frame.
+						if {$parameter eq [lrange $frame end-[expr [llength $parameter]-1] end]} {
+							return [list $tail $output $input $iteratorpassed]
+						}
+					}	
 				}
 				includePartial {
 					## Skip partials when compiling is done only for skipping over a section.
