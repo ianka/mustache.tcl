@@ -2,10 +2,10 @@
 ## mustache.tcl - an implementation of the mustache templating language in tcl.
 ## See https://github.com/mustache for further information about mustache.
 ##
-## (C)2014 by Jan Kandziora <jjj@gmx.de>
+## (C)2015 by Jan Kandziora <jjj@gmx.de>
 ##
 ## You may use, copy, distibute, and modify this software under the terms of
-## the GNU General Public License(GPL), Version 2. See file COPYING for details.
+## the BSD-2-Clause license. See file COPYING for details.
 ##
 
 

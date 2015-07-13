@@ -5,7 +5,7 @@ set data {
 [manpage_begin mustache n 1.1.2]
 [moddesc   {mustache.tcl}]
 [titledesc {mustache templating engine}]
-[copyright "2014 Jan Kandziora <jjj@gmx.de>, GPLv2 license"]
+[copyright "2015 Jan Kandziora <jjj@gmx.de>, BSD-2-Clause license"]
 [keywords "template processing" html]
 [require Tcl 8.5]
 [require lambda]
