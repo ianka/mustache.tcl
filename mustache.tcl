@@ -434,5 +434,5 @@ namespace eval ::mustache {
 
 
 ## All ok, actually provide this package.
-package provide mustache 1.1.2
+package provide mustache 1.1.3
 

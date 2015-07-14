@@ -2,20 +2,20 @@
 package require doctools
 
 set data {
-[manpage_begin mustache n 1.1.2]
+[manpage_begin mustache n 1.1.3]
 [moddesc   {mustache.tcl}]
 [titledesc {mustache templating engine}]
 [copyright "2015 Jan Kandziora <jjj@gmx.de>, BSD-2-Clause license"]
 [keywords "template processing" html]
 [require Tcl 8.5]
 [require lambda]
-[require mustache [opt 1.1.2]]
+[require mustache [opt 1.1.3]]
 
 [description]
 This package is a pure-Tcl implementation of the mustache templating engine spec
 which can be found at[nl]
 [uri https://github.com/mustache/spec/tree/master/specs][nl]
-v1.1.2 of the spec and the optional lambda part are supported.[nl]
+v1.1.3 of the spec and the optional lambda part are supported.[nl]
 See [uri http://mustache.github.io/] for further information on mustache.
 
 
