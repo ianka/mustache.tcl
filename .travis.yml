@@ -1,9 +1,12 @@
+language: generic
+dist: trusty
+
 sudo: false
 
 addons:
   apt:
     packages:
-      - tcl
+      - tcl8.5
       - tcllib
 
 cache:
