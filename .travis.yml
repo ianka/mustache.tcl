@@ -1,0 +1,15 @@
+language: java
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - tcl
+      - tcllib
+
+cache:
+  - apt
+
+script:
+  - ./tests.tcl
