@@ -1,6 +1,4 @@
-language: java
-
-sudo: true
+sudo: false
 
 addons:
   apt:
@@ -12,4 +10,4 @@ cache:
   - apt
 
 script:
-  - ./tests.tcl
+  - tclsh tests.tcl
