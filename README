@@ -1,11 +1,13 @@
 OVERVIEW
 ========
-mustache.tcl is a Tcl-only implementation of the mustache templating language. 
+mustache.tcl is a Tcl-only implementation of the mustache templating language.
 
-This package supports the v1.1.3 mustache spec which can be found at 
+This package supports the v1.1.3 mustache spec which can be found at
 https://github.com/mustache/spec/tree/master/specs, lambdas are supported, too.
 
 See https://github.com/mustache for further information on mustache.
+
+[![Build Status](https://travis-ci.org/d-led/mustache.tcl.svg?branch=master)](https://travis-ci.org/d-led/mustache.tcl)
 
 
 INVOCATION
