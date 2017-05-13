@@ -74,8 +74,7 @@ namespace eval ::mustache {
 				}
 
 				## Return with input and compiled output.
-				append output $head
-				return [list {} $output $input 0]
+				return [list $head $output $input 0]
 			}
 
 			## Indent pre-tag content.
@@ -155,6 +154,9 @@ namespace eval ::mustache {
 							## Get value.
 							set value [dict get $context {*}$thisframe {*}$parameter]
 
+							## Reset tail.
+							set newtail {}
+
 							## Check for lambda.
 							if {![catch {dict get $value $::mustache::LambdaPrefix} body]} {
 								## Lambda. Check for limit.
@@ -165,7 +167,7 @@ namespace eval ::mustache {
 								}
 
 								## No limit. Get actual value from lambda.
-								lassign [::mustache::compile [eval [::lambda {} $body]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent] dummy value
+								lassign [::mustache::compile [eval [::lambda {} $body]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent] newtail value
 
 								## Check for double.
 							} elseif {[string is double -strict $value]} {
@@ -175,9 +177,9 @@ namespace eval ::mustache {
 
 							## Substitute in output, escape if neccessary.
 							if {$escape} {
-								append output [string map $::mustache::HtmlEscapeMap $value]
+								append output [string map $::mustache::HtmlEscapeMap $value] [string map $::mustache::HtmlEscapeMap $newtail]
 							} else {
-								append output $value
+								append output $value $newtail
 							}
 
 							## Break.
@@ -259,10 +261,10 @@ namespace eval ::mustache {
 									lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail dummy sectioninput
 
 									## Evaluate lambda with section input.
-									lassign [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] dummy value
+									lassign [::mustache::compile [eval [::lambda arg $body $sectioninput]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail value
 
 									## Substitute in output, escape.
-									append output $value
+									append output $value $newtail
 
 									## Check for simple list vs. list of lists.
 									## (section value is a list of key/value pairs)
@@ -390,15 +392,15 @@ namespace eval ::mustache {
 						upvar #$toplevel $parameter partial
 						if {[info exists partial]} {
 							## Compile a partial from a variable.
-							lassign [::mustache::compile $partial $context $toplevel $libraries $frame $lambdalimit $standalone 0 $partialsindent] dummy sectionoutput
-							append output $sectionoutput
+							lassign [::mustache::compile $partial $context $toplevel $libraries $frame $lambdalimit $standalone 0 $partialsindent] newtail sectionoutput
+							append output $sectionoutput $newtail
 						} else {
 							## Compile a partial from library.
 							foreach lib $libraries {
 								upvar #$toplevel $lib library
 								if {[dict exists $library $parameter]} {
-									lassign [::mustache::compile [dict get $library $parameter] $context $toplevel $libraries $frame $lambdalimit $standalone 0 $partialsindent] dummy sectionoutput
-									append output $sectionoutput
+									lassign [::mustache::compile [dict get $library $parameter] $context $toplevel $libraries $frame $lambdalimit $standalone 0 $partialsindent] newtail sectionoutput
+									append output $sectionoutput $newtail
 
 									## Break.
 									break
@@ -427,8 +429,10 @@ namespace eval ::mustache {
 				lappend libraries $lib
 			}
 		}
+
 		## Compile template.
-		lindex [::mustache::compile $template $context [expr [info level]-1] $libraries] 1
+		lassign [::mustache::compile $template $context [expr [info level]-1] $libraries] tail output
+		string cat $output $tail
 	}
 }
 
