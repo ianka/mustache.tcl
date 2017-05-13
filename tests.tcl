@@ -8,7 +8,7 @@ package require mustache
 package require yaml
 
 
-## Helper procs. 
+## Helper procs.
 proc underline {string char} {
 	return $string\n[string repeat $char [string length $string]]
 }
@@ -63,8 +63,7 @@ proc testFile {name} {
 			}
 			puts "Expected: \"[string map {" " "."} [dict get $test expected]]\""
 			puts "Result: \"[string map {" " "."} $result]\""
-		}	
-		
+		}
 	}
 
 	close $fd
