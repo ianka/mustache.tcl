@@ -31,7 +31,7 @@ proc testFile {name} {
 		incr ::counter
 
 		## Ignore test if a special test number should be performed and this isn't it.
-		if {[lindex $::argv 0] ni [list {} $::counter]} continue
+		if {$::selected ne {} && $::counter ni $::selected} continue
 
 		## Setup partials.
 		if {[dict exists $test partials]} {
@@ -70,6 +70,19 @@ proc testFile {name} {
 }
 
 
+## Get the test ranges from argv.
+set selected {}
+foreach arg $argv {
+	if {[string is integer -strict $arg]} {
+		lappend selected $arg
+	}
+	if {[regexp {([[:digit:]]+)-([[:digit:]]+)} $arg match start end]} {
+		for {set i $start} {$i <= $end} {incr i} {
+			lappend selected $i
+		}
+	}
+}
+
 ## Go trough all tests.
 set counter 0
 set passed 0
@@ -77,4 +90,4 @@ foreach filename [glob [file join tests *.yml]] {
 	testFile $filename
 }
 
-puts "\n[underline "Result:" =]\n$passed of $counter tests passed."
+puts "\n[underline "Result:" =]\n$passed [expr {$selected ne {}?"of [llength $selected] selected ":""}](of $counter) tests passed."
