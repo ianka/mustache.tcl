@@ -242,8 +242,8 @@ namespace eval ::mustache {
 									lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
 									## Check for values is boolean true
 								} elseif {([string is boolean -strict $values] && $values)} {
-									## Render section in current frame.
-									lassign [::mustache::compile $tail $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
+									## Render section in new frame.
+									lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
 									append output $sectionoutput
 
 									## Check for lambda.
@@ -319,6 +319,7 @@ namespace eval ::mustache {
 
 										## Call recursive, get new tail.
 										lassign [::mustache::compile $tail $newcontext $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] newtail sectionoutput
+
 										append output $sectionoutput
 									}
 
@@ -379,6 +380,7 @@ namespace eval ::mustache {
 						## Normal section closed.
 						## Split up the parameter into dotted sections.
 						set parameter [split $parameter .]
+
 						## Break recursion if parameter matches innermost frame.
 						if {$parameter eq [lrange $frame end-[expr [llength $parameter]-1] end]} {
 							return [list $tail $output $input $iteratorpassed]
