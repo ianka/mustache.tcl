@@ -1,0 +1,15 @@
+overview: |
+  Additional tests for bugs found by mustache.tcl users.
+tests:
+  - name: Sections - Trailing Text
+    desc: Nested section causes spurious repeats. <https://github.com/ianka/mustache.tcl/issues/2>
+    data: { o: [ { x: a, i: 1 }, { x: b, i: 0 }, { x: c, i: 1 } ] }
+    template: '{{#o}}{{#i}}{{x}}{{/i}}{{/o}}foo'
+    expected: 'acfoo'
+
+  - name: Sections - Repeated Sections
+    desc: Nested sections affect repeated outer section. <https://github.com/ianka/mustache.tcl/issues/3>
+    data: { items: [ { item: a, comma: true }, { item: b } ] }
+    template: '{{#items}}{{item}}{{#comma}},{{/comma}}{{/items}}{{#items}}{{item}}{{/items}}{{#items}}{{item}}{{#comma}},{{/comma}}{{/items}}'
+    expected: 'a,baba,b'
+
