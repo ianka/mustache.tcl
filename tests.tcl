@@ -4,6 +4,8 @@
 ## test suite from https://github.com/mustache/spec/tree/master/specs
 ##
 
+set auto_path [linsert $auto_path 0 .]
+
 package require mustache
 package require yaml
 
