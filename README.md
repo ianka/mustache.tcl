@@ -7,7 +7,7 @@ https://github.com/mustache/spec/tree/master/specs, lambdas are supported, too.
 
 See https://github.com/mustache for further information on mustache.
 
-[![Build Status](https://travis-ci.org/d-led/mustache.tcl.svg?branch=master)](https://travis-ci.org/d-led/mustache.tcl)
+[![Build Status](https://travis-ci.org/ianka/mustache.tcl.svg?branch=master)](https://travis-ci.org/ianka/mustache.tcl)
 
 
 INVOCATION
