@@ -434,7 +434,7 @@ namespace eval ::mustache {
 
 		## Compile template.
 		lassign [::mustache::compile $template $context [expr [info level]-1] $libraries] tail output
-		string cat $output $tail
+		join [list $output $tail] ""
 	}
 }
 

@@ -1,0 +1,16 @@
+language: generic
+dist: trusty
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - tcl8.5
+      - tcllib
+
+cache:
+  - apt
+
+script:
+  - tclsh tests.tcl
