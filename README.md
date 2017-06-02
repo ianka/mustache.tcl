@@ -1,11 +1,13 @@
 OVERVIEW
 ========
-mustache.tcl is a Tcl-only implementation of the mustache templating language. 
+mustache.tcl is a Tcl-only implementation of the mustache templating language.
 
-This package supports the v1.1.3 mustache spec which can be found at 
+This package supports the v1.1.3 mustache spec which can be found at
 https://github.com/mustache/spec/tree/master/specs, lambdas are supported, too.
 
 See https://github.com/mustache for further information on mustache.
+
+[![Build Status](https://travis-ci.org/d-led/mustache.tcl.svg?branch=master)](https://travis-ci.org/d-led/mustache.tcl)
 
 
 INVOCATION
@@ -36,7 +38,10 @@ Lambdas
 Lamdba use is straightforward. Just make a context value a list with "Λtcl"
 as first element to declare the next element as an executeable content.
 
---- IMPORTANT NOTICE, SECURITY CONCERN ---
+IMPORTANT NOTICE, SECURITY CONCERN
+==================================
+
+```
 To work around the limitation Tcl doesn't support explicit typing and thus,
 lambdas an inherently unsafe with user supplied content (and aside from
 the usual Tcl way of sandboxing anything unsafe), there is support for
@@ -44,10 +49,11 @@ the usual Tcl way of sandboxing anything unsafe), there is support for
 start of their context. Lambdas within those sections are always substituted
 from the context *outside* the section. This makes it safe to use programmer
 defined lambdas mixed with user content.
----
+```
 
 The lambda prefix can be changed globally, should this ever be needed, by
-doing
+doi
+ng
 
 	set ::mustache::LambdaPrefix "Λtcl"
 
@@ -94,6 +100,7 @@ found another bug or have more testcases, please contact me.
 AUTHOR AND LICENSE
 ==================
 Jan Kandziora <jjj@gmx.de>
+
 (C)2015 by Jan Kandziora <jjj@gmx.de>
 
 You may use, copy, distibute, and modify this software under the terms of
