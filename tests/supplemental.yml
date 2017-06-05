@@ -13,3 +13,9 @@ tests:
     template: '{{#items}}{{item}}{{#comma}},{{/comma}}{{/items}}{{#items}}{{item}}{{/items}}{{#items}}{{item}}{{#comma}},{{/comma}}{{/items}}'
     expected: 'a,baba,b'
 
+  - name: Sections - Truth values in list contexts
+    desc: Truth values should not throw an error in a list context.
+    data: { chars: [ { char: a, hasdigit: true }, { char: b } ], digits: [ { digit: 1 }, { digit: 2 } ] }
+    template: '{{#chars}}{{char}}{{#hasdigit}}:{{#digits}}{{digit}}{{/digits}};{{/hasdigit}}{{/chars}}'
+    expected: 'a:12;b'
+

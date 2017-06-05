@@ -242,6 +242,9 @@ namespace eval ::mustache {
 									lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone 1] tail
 									## Check for values is boolean true
 								} elseif {([string is boolean -strict $values] && $values)} {
+									## Replace a stray boolean value by a key/value pair.
+									dict set context {*}$thisframe [lindex $parameter end] {true {}}
+
 									## Render section in new frame.
 									lassign [::mustache::compile $tail $context $toplevel $libraries $newframe $lambdalimit $standalone $skippartials $indent $opendelimiter $closedelimiter] tail sectionoutput
 									append output $sectionoutput
