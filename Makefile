@@ -11,6 +11,6 @@ clean:
 
 install: all
 	mkdir -p $(INSTALL_PATH)
-	cp mustache.tcl pkgIndex.tcl examples.tcl README COPYING mustache.html $(INSTALL_PATH)
+	cp mustache.tcl pkgIndex.tcl examples.tcl README.md COPYING mustache.html $(INSTALL_PATH)
 	mkdir -p $(MAN_INSTALL_PATH)
 	cp mustache.n $(MAN_INSTALL_PATH)
