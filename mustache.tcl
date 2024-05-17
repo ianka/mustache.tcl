@@ -170,9 +170,9 @@ namespace eval ::mustache {
 								lassign [::mustache::compile [eval [::lambda {} $body]] $context $toplevel $libraries $frame $lambdalimit $standalone $skippartials $indent] newtail value
 
 								## Check for double.
-							} elseif {[string is double -strict $value]} {
-									## Treat doubles as numbers.
-									set value [expr $value]
+							} elseif {![string is integer -strict $value] && [string is double -strict $value]} {
+								## Treat doubles as numbers.
+								set value [expr $value]
 							}
 
 							## Substitute in output, escape if neccessary.
@@ -192,7 +192,7 @@ namespace eval ::mustache {
 					set value [dict get $context {*}$frame]
 
 					## Treat doubles as numbers.
-					if {[string is double -strict $value]} {
+					if {![string is integer -strict $value] && [string is double -strict $value]} {
 						set value [expr $value]
 					}
 

@@ -19,3 +19,32 @@ tests:
     template: '{{#chars}}{{char}}{{#hasdigit}}:{{#digits}}{{digit}}{{/digits}};{{/hasdigit}}{{/chars}}'
     expected: 'a:12;b'
 
+  - name: Basic Interpolation - values with leading zeroes
+    desc: Values with leading zeroes must not be interpreted as octal numbers.
+    data: { value: "012" }
+    template: '{{value}}'
+    expected: '012'
+
+  - name: Basic Interpolation - values with leading 0x
+    desc: Values with leading 0x must not be interpreted as hexadecimal numbers.
+    data: { value: "0x12" }
+    template: '{{value}}'
+    expected: '0x12'
+
+  - name: Implicit Iterator - values with leading zeroes
+    desc: Values with leading zeroes must not be interpreted as octal numbers.
+    data:
+      list: [ 012, 023, 034 ]
+    template: '"{{#list}}({{.}}){{/list}}"'
+    expected: '"(012)(023)(034)"'
+
+  - name: Implicit Iterator - values with leading 0x
+    desc: Values with leading 0x must not be interpreted as hexadecimal numbers.
+    data:
+      list: [ 0x12, 0x23, 0x34 ]
+    template: '"{{#list}}({{.}}){{/list}}"'
+    expected: '"(0x12)(0x23)(0x34)"'
+
+
+
+
